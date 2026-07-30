@@ -1,0 +1,52 @@
+project:
+  name: AI_BIST_Research
+  version: 0.1.0
+  timezone: Europe/Istanbul
+  language: tr
+
+universe:
+  market: BIST
+  symbols: []
+  max_candidates: 5
+  max_strong_buy: 3
+  min_average_daily_volume_try: 50000000
+
+analysis:
+  investment_horizon: 1-3_months
+  risk_profile: low
+  news_lookback_days: 30
+
+  timeframes:
+    - 1h
+    - 1d
+    - 1wk
+
+scoring:
+  technical: 25
+  fundamental: 25
+  news_and_kap: 20
+  macroeconomic: 10
+  sector: 8
+  institutional_flow: 5
+  ai_synthesis: 5
+  risk: 2
+
+decision_thresholds:
+  strong_buy: 90
+  buy: 80
+  hold: 65
+  sell: 45
+
+risk_management:
+  minimum_risk_reward_ratio: 2.0
+  allow_cash_recommendation: true
+  block_on_critical_risk: true
+
+output:
+  create_markdown_report: true
+  create_json_report: true
+  save_reports: true
+  email_enabled: false
+
+secrets:
+  openai_api_key_environment_variable: OPENAI_API_KEY
