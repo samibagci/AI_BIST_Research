@@ -1,0 +1,34 @@
+# Python geçici dosyaları
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+
+# Sanal ortamlar
+.venv/
+venv/
+env/
+
+# Gizli bilgiler ve API anahtarları
+.env
+.env.*
+config/settings.yaml
+*.key
+*.pem
+
+# Oluşturulan veri ve raporlar
+data/raw/
+data/processed/
+logs/
+*.log
+reports/*.json
+reports/*.html
+reports/*.pdf
+
+# Editör ve işletim sistemi dosyaları
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
