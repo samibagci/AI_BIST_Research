@@ -1,0 +1,475 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/samibagci/AI_BIST_Research/schemas/analysis.schema.json",
+  "title": "AI_BIST_Research Analysis Schema",
+  "description": "BIST analiz çalışmasının standart veri yapısı.",
+  "type": "object",
+  "required": [
+    "run_id",
+    "analysis_date",
+    "market",
+    "market_regime",
+    "stocks",
+    "warnings",
+    "errors"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "Analiz çalışmasının benzersiz kimliği.",
+      "pattern": "^[0-9]{8}-[0-9]{6}$",
+      "examples": [
+        "20260730-145300"
+      ]
+    },
+    "analysis_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Analizin ISO 8601 formatındaki tarihi."
+    },
+    "market": {
+      "type": "string",
+      "const": "BIST"
+    },
+    "market_regime": {
+      "$ref": "#/$defs/marketRegime"
+    },
+    "stocks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/stockAnalysis"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/systemMessage"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/systemMessage"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "marketRegime": {
+      "type": "object",
+      "required": [
+        "regime",
+        "confidence_score"
+      ],
+      "properties": {
+        "regime": {
+          "type": "string",
+          "enum": [
+            "BULL",
+            "BEAR",
+            "SIDEWAYS",
+            "HIGH_VOLATILITY",
+            "CRISIS",
+            "UNCERTAIN"
+          ]
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "bist100_trend": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "volatility_level": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "VERY_HIGH",
+            null
+          ]
+        },
+        "market_breadth": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "risk_appetite": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "stockAnalysis": {
+      "type": "object",
+      "required": [
+        "symbol",
+        "data_quality",
+        "technical",
+        "fundamental",
+        "news_and_kap",
+        "risk",
+        "score",
+        "decision"
+      ],
+      "properties": {
+        "symbol": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{2,10}$",
+          "examples": [
+            "THYAO"
+          ]
+        },
+        "company_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sector": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "default": "TRY"
+        },
+        "last_price": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "price_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "data_quality": {
+          "$ref": "#/$defs/dataQuality"
+        },
+        "technical": {
+          "$ref": "#/$defs/analysisModule"
+        },
+        "fundamental": {
+          "$ref": "#/$defs/analysisModule"
+        },
+        "news_and_kap": {
+          "$ref": "#/$defs/analysisModule"
+        },
+        "macro": {
+          "$ref": "#/$defs/analysisModule"
+        },
+        "sector_analysis": {
+          "$ref": "#/$defs/analysisModule"
+        },
+        "institutional_flow": {
+          "$ref": "#/$defs/analysisModule"
+        },
+        "risk": {
+          "$ref": "#/$defs/risk"
+        },
+        "score": {
+          "$ref": "#/$defs/score"
+        },
+        "decision": {
+          "$ref": "#/$defs/decision"
+        }
+      },
+      "additionalProperties": true
+    },
+    "dataQuality": {
+      "type": "object",
+      "required": [
+        "quality_score",
+        "is_data_current",
+        "missing_fields",
+        "warnings"
+      ],
+      "properties": {
+        "quality_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "is_data_current": {
+          "type": "boolean"
+        },
+        "missing_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "analysisModule": {
+      "type": "object",
+      "properties": {
+        "score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "strengths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "weaknesses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "risk": {
+      "type": "object",
+      "required": [
+        "risk_level",
+        "risk_multiplier",
+        "hard_block",
+        "block_reasons"
+      ],
+      "properties": {
+        "risk_level": {
+          "type": "string",
+          "enum": [
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "VERY_HIGH",
+            "CRITICAL"
+          ]
+        },
+        "risk_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "risk_multiplier": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "hard_block": {
+          "type": "boolean"
+        },
+        "block_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "score": {
+      "type": "object",
+      "required": [
+        "raw_score",
+        "final_score"
+      ],
+      "properties": {
+        "technical": {
+          "$ref": "#/$defs/scoreValue"
+        },
+        "fundamental": {
+          "$ref": "#/$defs/scoreValue"
+        },
+        "news_and_kap": {
+          "$ref": "#/$defs/scoreValue"
+        },
+        "macroeconomic": {
+          "$ref": "#/$defs/scoreValue"
+        },
+        "sector": {
+          "$ref": "#/$defs/scoreValue"
+        },
+        "institutional_flow": {
+          "$ref": "#/$defs/scoreValue"
+        },
+        "ai_synthesis": {
+          "$ref": "#/$defs/scoreValue"
+        },
+        "risk": {
+          "$ref": "#/$defs/scoreValue"
+        },
+        "raw_score": {
+          "$ref": "#/$defs/scoreValue"
+        },
+        "final_score": {
+          "$ref": "#/$defs/scoreValue"
+        }
+      },
+      "additionalProperties": false
+    },
+    "scoreValue": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "decision": {
+      "type": "object",
+      "required": [
+        "rating",
+        "confidence_score"
+      ],
+      "properties": {
+        "rating": {
+          "type": "string",
+          "enum": [
+            "STRONG_BUY",
+            "BUY",
+            "HOLD",
+            "SELL",
+            "STRONG_SELL",
+            "NO_ACTION"
+          ]
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "investment_horizon": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entry_zone": {
+          "type": "object"
+        },
+        "target_scenarios": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "stop_loss": {
+          "type": "object"
+        },
+        "risk_reward_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "bull_case": {
+          "type": "object"
+        },
+        "base_case": {
+          "type": "object"
+        },
+        "bear_case": {
+          "type": "object"
+        },
+        "counter_thesis": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "invalidating_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "systemMessage": {
+      "type": "object",
+      "required": [
+        "module",
+        "message",
+        "timestamp"
+      ],
+      "properties": {
+        "module": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "error_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
