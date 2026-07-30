@@ -25,7 +25,7 @@ logs/
 reports/*.json
 reports/*.html
 reports/*.pdf
-
+reports/*.md
 # Editör ve işletim sistemi dosyaları
 .vscode/
 .idea/
