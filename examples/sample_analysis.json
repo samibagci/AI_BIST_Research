@@ -1,0 +1,169 @@
+{
+  "run_id": "20260730-150000",
+  "analysis_date": "2026-07-30T15:00:00+03:00",
+  "market": "BIST",
+  "market_regime": {
+    "regime": "BULL",
+    "confidence_score": 78,
+    "bist100_trend": "POSITIVE",
+    "volatility_level": "MEDIUM",
+    "market_breadth": "POSITIVE",
+    "risk_appetite": "MEDIUM",
+    "reasons": [
+      "BIST 100 orta vadeli yükseliş trendinde.",
+      "Piyasa geneline yayılan pozitif görünüm mevcut."
+    ]
+  },
+  "stocks": [
+    {
+      "symbol": "THYAO",
+      "company_name": "Türk Hava Yolları",
+      "sector": "Ulaştırma",
+      "currency": "TRY",
+      "last_price": 300.0,
+      "price_date": "2026-07-30T18:10:00+03:00",
+      "data_quality": {
+        "quality_score": 90,
+        "is_data_current": true,
+        "missing_fields": [],
+        "warnings": []
+      },
+      "technical": {
+        "score": 82,
+        "signals": [
+          "Fiyat orta vadeli hareketli ortalamaların üzerinde.",
+          "Momentum göstergeleri pozitif."
+        ],
+        "strengths": [
+          "Yükselen trend",
+          "Güçlü işlem hacmi"
+        ],
+        "weaknesses": [
+          "Kısa vadeli aşırı alım riski"
+        ],
+        "warnings": []
+      },
+      "fundamental": {
+        "score": 76,
+        "signals": [
+          "Gelir büyümesi olumlu.",
+          "Operasyonel kârlılık güçlü."
+        ],
+        "strengths": [
+          "Güçlü marka",
+          "Döviz bazlı gelir"
+        ],
+        "weaknesses": [
+          "Yakıt maliyetlerine duyarlılık"
+        ],
+        "warnings": []
+      },
+      "news_and_kap": {
+        "score": 80,
+        "signals": [
+          "Son 30 günlük haber akışı genel olarak olumlu."
+        ],
+        "strengths": [
+          "Operasyonel büyüme beklentisi"
+        ],
+        "weaknesses": [],
+        "warnings": [
+          "Bu veriler yalnızca örnek amaçlıdır."
+        ]
+      },
+      "macro": {
+        "score": 70,
+        "signals": [
+          "Turizm talebi şirket açısından destekleyici."
+        ],
+        "strengths": [],
+        "weaknesses": [
+          "Petrol fiyatlarındaki artış maliyet baskısı yaratabilir."
+        ],
+        "warnings": []
+      },
+      "sector_analysis": {
+        "score": 74,
+        "signals": [
+          "Ulaştırma sektöründe göreceli güç olumlu."
+        ],
+        "strengths": [],
+        "weaknesses": [],
+        "warnings": []
+      },
+      "institutional_flow": {
+        "score": 65,
+        "signals": [],
+        "strengths": [],
+        "weaknesses": [],
+        "warnings": [
+          "Kurumsal para akışı verisi sınırlıdır."
+        ]
+      },
+      "risk": {
+        "risk_level": "MEDIUM",
+        "risk_score": 65,
+        "risk_multiplier": 0.92,
+        "hard_block": false,
+        "block_reasons": [],
+        "warnings": [
+          "Yakıt maliyetleri ve döviz hareketleri takip edilmelidir."
+        ]
+      },
+      "score": {
+        "technical": 82,
+        "fundamental": 76,
+        "news_and_kap": 80,
+        "macroeconomic": 70,
+        "sector": 74,
+        "institutional_flow": 65,
+        "ai_synthesis": 78,
+        "risk": 65,
+        "raw_score": 77.1,
+        "final_score": 70.93
+      },
+      "decision": {
+        "rating": "HOLD",
+        "confidence_score": 75,
+        "investment_horizon": "1-3_MONTHS",
+        "entry_zone": {
+          "minimum": 290.0,
+          "maximum": 300.0,
+          "currency": "TRY"
+        },
+        "target_scenarios": [
+          {
+            "scenario": "BASE",
+            "target": 330.0,
+            "currency": "TRY"
+          }
+        ],
+        "stop_loss": {
+          "level": 278.0,
+          "method": "ATR_AND_SUPPORT",
+          "currency": "TRY"
+        },
+        "risk_reward_ratio": 2.0,
+        "bull_case": {
+          "summary": "Güçlü talep ve pozitif operasyonel görünüm yükselişi destekleyebilir."
+        },
+        "base_case": {
+          "summary": "Hissenin orta vadede kontrollü yükselişini sürdürmesi beklenebilir."
+        },
+        "bear_case": {
+          "summary": "Yakıt maliyetleri ve piyasa riskleri satış baskısı oluşturabilir."
+        },
+        "counter_thesis": [
+          "Yüksek maliyetler kârlılık üzerinde baskı oluşturabilir.",
+          "Piyasa rejimi bozulursa teknik görünüm zayıflayabilir."
+        ],
+        "invalidating_conditions": [
+          "Fiyatın belirlenen stop seviyesinin altında kapanması.",
+          "Şirket görünümünü bozan önemli bir KAP açıklaması."
+        ]
+      }
+    }
+  ],
+  "warnings": [],
+  "errors": []
+}
