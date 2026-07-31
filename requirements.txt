@@ -2,3 +2,4 @@ jsonschema>=4,<5
 pytest>=8,<9
 numpy>=2,<3
 pandas>=2,<3
+yfinance>=1.5,<2
