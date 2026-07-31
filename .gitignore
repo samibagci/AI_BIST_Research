@@ -32,3 +32,4 @@ reports/*.md
 .DS_Store
 Thumbs.db
 desktop.ini
+data/prices/*.csv
