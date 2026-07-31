@@ -10,6 +10,7 @@ import src.run_bist_batch_analysis as module
 from src.run_bist_batch_analysis import (
     build_markdown_report,
     extract_technical_score,
+    load_watchlist,
     parse_symbol_inputs,
     run_bist_batch_analysis,
     save_json_summary,
@@ -53,6 +54,63 @@ def test_parse_symbol_inputs_rejects_empty_values() -> None:
         match="En az bir hisse kodu",
     ):
         parse_symbol_inputs(["", " , "])
+
+
+def test_load_watchlist_reads_symbols(
+    tmp_path: Path,
+) -> None:
+    watchlist_path = tmp_path / "watchlist.txt"
+
+    watchlist_path.write_text(
+        "\n".join(
+            [
+                "# BIST izleme listesi",
+                "THYAO",
+                "ASELS  # Savunma",
+                "",
+                "TUPRS,KCHOL",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    symbols = load_watchlist(watchlist_path)
+
+    assert symbols == [
+        "THYAO",
+        "ASELS",
+        "TUPRS",
+        "KCHOL",
+    ]
+
+
+def test_load_watchlist_rejects_missing_file(
+    tmp_path: Path,
+) -> None:
+    missing_path = tmp_path / "missing.txt"
+
+    with pytest.raises(
+        FileNotFoundError,
+        match="İzleme listesi bulunamadı",
+    ):
+        load_watchlist(missing_path)
+
+
+def test_load_watchlist_rejects_empty_file(
+    tmp_path: Path,
+) -> None:
+    watchlist_path = tmp_path / "watchlist.txt"
+
+    watchlist_path.write_text(
+        "# Yalnızca yorum satırı\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="En az bir hisse kodu",
+    ):
+        load_watchlist(watchlist_path)
 
 
 def test_extract_technical_score() -> None:
@@ -313,6 +371,76 @@ def test_main_completes_batch_analysis(
     assert "BAŞARILI" in terminal_output
     assert "Başarılı analiz: 2" in terminal_output
     assert "En yüksek puan: ASELS - 72.8" in terminal_output
+
+
+def test_main_uses_watchlist_when_symbols_are_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    watchlist_path = tmp_path / "watchlist.txt"
+    json_path = tmp_path / "batch.json"
+    markdown_path = tmp_path / "batch.md"
+
+    watchlist_path.write_text(
+        "THYAO\nASELS\nTUPRS\n",
+        encoding="utf-8",
+    )
+
+    captured_arguments: dict[str, object] = {}
+
+    summary: dict[str, object] = {
+        "generated_at": "2026-07-31T12:00:00+00:00",
+        "period": "1y",
+        "requested_count": 3,
+        "processed_count": 3,
+        "success_count": 3,
+        "failure_count": 0,
+        "results": [
+            {
+                "rank": 1,
+                "symbol": "TUPRS",
+                "technical_score": 70.0,
+            }
+        ],
+        "errors": [],
+    }
+
+    def fake_batch_analysis(
+        **kwargs: object,
+    ) -> dict[str, object]:
+        captured_arguments.update(kwargs)
+        return summary
+
+    monkeypatch.setattr(
+        module,
+        "run_bist_batch_analysis",
+        fake_batch_analysis,
+    )
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_bist_batch_analysis.py",
+            "--watchlist",
+            str(watchlist_path),
+            "--json-output",
+            str(json_path),
+            "--report-output",
+            str(markdown_path),
+        ],
+    )
+
+    exit_code = module.main()
+
+    assert exit_code == 0
+    assert captured_arguments["symbols"] == [
+        "THYAO",
+        "ASELS",
+        "TUPRS",
+    ]
+    assert json_path.exists()
+    assert markdown_path.exists()
 
 
 def test_main_returns_error_when_all_analyses_fail(

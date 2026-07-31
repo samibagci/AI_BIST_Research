@@ -28,9 +28,37 @@ def parse_symbol_inputs(values: list[str]) -> list[str]:
                 symbols.append(cleaned_symbol)
 
     if not symbols:
-        raise ValueError("En az bir hisse kodu girilmelidir.")
+        raise ValueError(
+            "En az bir hisse kodu girilmelidir."
+        )
 
     return symbols
+
+
+def load_watchlist(
+    watchlist_path: Path,
+) -> list[str]:
+    if not watchlist_path.exists():
+        raise FileNotFoundError(
+            f"İzleme listesi bulunamadı: {watchlist_path}"
+        )
+
+    lines = watchlist_path.read_text(
+        encoding="utf-8",
+    ).splitlines()
+
+    values: list[str] = []
+
+    for line in lines:
+        cleaned_line = line.split(
+            "#",
+            maxsplit=1,
+        )[0].strip()
+
+        if cleaned_line:
+            values.append(cleaned_line)
+
+    return parse_symbol_inputs(values)
 
 
 def extract_technical_score(
@@ -273,11 +301,18 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "symbols",
-        nargs="+",
+        nargs="*",
         help=(
-            "Hisse kodları. Örnek: "
+            "İsteğe bağlı hisse kodları. Örnek: "
             "THYAO ASELS TUPRS"
         ),
+    )
+
+    parser.add_argument(
+        "--watchlist",
+        type=Path,
+        default=Path("config/bist_watchlist.txt"),
+        help="İzleme listesi dosyasının yolu.",
     )
 
     parser.add_argument(
@@ -321,9 +356,14 @@ def main() -> int:
     arguments = parse_arguments()
 
     try:
-        symbols = parse_symbol_inputs(
-            arguments.symbols
-        )
+        if arguments.symbols:
+            symbols = parse_symbol_inputs(
+                arguments.symbols
+            )
+        else:
+            symbols = load_watchlist(
+                arguments.watchlist
+            )
 
         json_output_path = arguments.json_output
 
