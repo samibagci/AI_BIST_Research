@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 
 from src.download_bist_prices import (
     download_bist_prices,
@@ -149,9 +157,7 @@ def main() -> int:
             "technical_score"
         ]
 
-        print(
-            "BAŞARILI: BIST analizi tamamlandı."
-        )
+        print("BAŞARILI: BIST analizi tamamlandı.")
         print(f"Hisse: {base_symbol}")
         print(f"Teknik puan: {technical_score}")
         print(
