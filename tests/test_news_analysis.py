@@ -260,30 +260,26 @@ def test_extract_news_article_rejects_missing_title() -> None:
     assert extract_news_article("haber") is None
 
 
-def test_fetch_company_news_uses_yahoo_symbol(
+def test_fetch_company_news_uses_yahoo_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    class FakeTicker:
-        def __init__(self, symbol: str) -> None:
-            captured["symbol"] = symbol
+    def fake_fetch_yahoo_news(
+        symbol: str,
+        count: int,
+    ) -> list[dict[str, object]]:
+        captured["symbol"] = symbol
+        captured["count"] = count
 
-        def get_news(
-            self,
-            count: int,
-            tab: str,
-        ) -> list[dict[str, object]]:
-            captured["count"] = count
-            captured["tab"] = tab
-            return [
-                create_raw_article(),
-            ]
+        return [
+            create_raw_article(),
+        ]
 
     monkeypatch.setattr(
-        module.yf,
-        "Ticker",
-        FakeTicker,
+        module,
+        "fetch_yahoo_news",
+        fake_fetch_yahoo_news,
     )
 
     result = fetch_company_news(
@@ -291,30 +287,18 @@ def test_fetch_company_news_uses_yahoo_symbol(
         count=15,
     )
 
-    assert captured["symbol"] == "THYAO.IS"
+    assert captured["symbol"] == "THYAO"
     assert captured["count"] == 15
-    assert captured["tab"] == "news"
     assert len(result) == 1
 
 
 def test_fetch_company_news_returns_empty_list(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    class FakeTicker:
-        def __init__(self, symbol: str) -> None:
-            self.symbol = symbol
-
-        def get_news(
-            self,
-            count: int,
-            tab: str,
-        ) -> None:
-            return None
-
     monkeypatch.setattr(
-        module.yf,
-        "Ticker",
-        FakeTicker,
+        module,
+        "fetch_yahoo_news",
+        lambda symbol, count: [],
     )
 
     assert fetch_company_news("THYAO") == []

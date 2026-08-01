@@ -7,9 +7,6 @@ import sys
 from datetime import datetime, timedelta, timezone
 from numbers import Real
 from pathlib import Path
-from typing import Any
-
-import yfinance as yf
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -19,6 +16,10 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 from src.download_bist_prices import normalize_bist_symbol
+from src.news_sources.yahoo_source import (
+    SOURCE_NAME,
+    fetch_yahoo_news,
+)
 
 
 DEFAULT_REPORT_DIRECTORY = Path("reports")
@@ -381,33 +382,10 @@ def fetch_company_news(
     symbol: str,
     count: int = DEFAULT_NEWS_COUNT,
 ) -> list[dict[str, object]]:
-    if count < 1:
-        raise ValueError(
-            "Haber sayısı en az 1 olmalıdır."
-        )
-
-    yahoo_symbol = normalize_bist_symbol(symbol)
-    ticker = yf.Ticker(yahoo_symbol)
-
-    raw_news = ticker.get_news(
+    return fetch_yahoo_news(
+        symbol=symbol,
         count=count,
-        tab="news",
     )
-
-    if raw_news is None:
-        return []
-
-    if not isinstance(raw_news, list):
-        raise ValueError(
-            f"{yahoo_symbol} haber verisi "
-            "beklenen formatta değil."
-        )
-
-    return [
-        article
-        for article in raw_news
-        if isinstance(article, dict)
-    ]
 
 
 def find_keyword_hits(
@@ -777,7 +755,7 @@ def analyze_news_articles(
         "generated_at": reference_time.isoformat(),
         "symbol": base_symbol,
         "yahoo_symbol": yahoo_symbol,
-        "source": "Yahoo Finance / yfinance",
+        "source": SOURCE_NAME,
         "lookback_days": lookback_days,
         "fetched_count": len(raw_articles),
         "analyzed_count": len(
