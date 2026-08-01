@@ -47,10 +47,18 @@ def create_technical_result() -> dict[str, object]:
             "candidates": [],
         },
         "outputs": {
-            "batch_json": "reports/bist_batch_analysis.json",
-            "batch_markdown": "reports/bist_batch_analysis.md",
-            "candidate_json": "reports/bist_candidates.json",
-            "candidate_markdown": "reports/bist_candidates.md",
+            "batch_json": (
+                "reports/bist_batch_analysis.json"
+            ),
+            "batch_markdown": (
+                "reports/bist_batch_analysis.md"
+            ),
+            "candidate_json": (
+                "reports/bist_candidates.json"
+            ),
+            "candidate_markdown": (
+                "reports/bist_candidates.md"
+            ),
         },
     }
 
@@ -110,6 +118,29 @@ def create_combined_summary(
     }
 
 
+def create_final_candidate_selection() -> dict[str, object]:
+    return {
+        "generated_at": "2026-08-01T12:30:00+00:00",
+        "candidate_count": 2,
+        "strong_candidate_count": 1,
+        "candidates": [
+            {
+                "rank": 1,
+                "symbol": "ASELS",
+                "combined_score": 71.85,
+                "label": "GÜÇLÜ NİHAİ ADAY",
+            },
+            {
+                "rank": 2,
+                "symbol": "TUPRS",
+                "combined_score": 68.15,
+                "label": "NİHAİ ADAY",
+            },
+        ],
+        "excluded": [],
+    }
+
+
 def create_complete_result(
     combined_count: int = 3,
 ) -> dict[str, object]:
@@ -124,6 +155,9 @@ def create_complete_result(
             create_combined_summary(
                 combined_count=combined_count
             )
+        ),
+        "final_candidate_selection": (
+            create_final_candidate_selection()
         ),
         "outputs": {
             "technical_batch_json": (
@@ -152,17 +186,19 @@ def create_complete_result(
             "combined_markdown": (
                 "reports/bist_combined_analysis.md"
             ),
+            "final_candidates_json": (
+                "reports/bist_combined_candidates.json"
+            ),
+            "final_candidates_markdown": (
+                "reports/bist_combined_candidates.md"
+            ),
         },
     }
 
 
-def test_run_complete_analysis_creates_outputs(
-    tmp_path: Path,
+def configure_successful_mocks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    report_directory = tmp_path / "reports"
-    price_directory = tmp_path / "prices"
-
     monkeypatch.setattr(
         module,
         "run_full_analysis",
@@ -193,6 +229,30 @@ def test_run_complete_analysis_creates_outputs(
         lambda summary: "# Birleşik Analiz\n",
     )
 
+    monkeypatch.setattr(
+        module,
+        "select_combined_candidates",
+        lambda **kwargs: (
+            create_final_candidate_selection()
+        ),
+    )
+
+    monkeypatch.setattr(
+        module,
+        "build_final_candidate_report",
+        lambda result: "# Nihai Adaylar\n",
+    )
+
+
+def test_run_complete_analysis_creates_outputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    report_directory = tmp_path / "reports"
+    price_directory = tmp_path / "prices"
+
+    configure_successful_mocks(monkeypatch)
+
     result = run_complete_analysis(
         symbols=[
             "THYAO",
@@ -207,47 +267,56 @@ def test_run_complete_analysis_creates_outputs(
         report_directory
         / "bist_fundamental_batch_analysis.json"
     )
-
     fundamental_markdown_path = (
         report_directory
         / "bist_fundamental_batch_analysis.md"
     )
-
     combined_json_path = (
         report_directory
         / "bist_combined_analysis.json"
     )
-
     combined_markdown_path = (
         report_directory
         / "bist_combined_analysis.md"
+    )
+    final_candidate_json_path = (
+        report_directory
+        / "bist_combined_candidates.json"
+    )
+    final_candidate_markdown_path = (
+        report_directory
+        / "bist_combined_candidates.md"
     )
 
     assert fundamental_json_path.exists()
     assert fundamental_markdown_path.exists()
     assert combined_json_path.exists()
     assert combined_markdown_path.exists()
+    assert final_candidate_json_path.exists()
+    assert final_candidate_markdown_path.exists()
 
-    saved_fundamental = json.loads(
-        fundamental_json_path.read_text(
+    saved_final_candidates = json.loads(
+        final_candidate_json_path.read_text(
             encoding="utf-8"
         )
     )
 
-    saved_combined = json.loads(
-        combined_json_path.read_text(
-            encoding="utf-8"
-        )
+    assert (
+        saved_final_candidates["candidate_count"]
+        == 2
     )
-
-    assert saved_fundamental["success_count"] == 3
-    assert saved_combined["combined_count"] == 3
+    assert (
+        saved_final_candidates[
+            "strong_candidate_count"
+        ]
+        == 1
+    )
 
     outputs = result["outputs"]
 
     assert isinstance(outputs, dict)
-    assert outputs["combined_json"] == str(
-        combined_json_path
+    assert outputs["final_candidates_json"] == str(
+        final_candidate_json_path
     )
 
 
@@ -258,6 +327,7 @@ def test_run_complete_analysis_passes_arguments(
     captured_technical: dict[str, object] = {}
     captured_fundamental: dict[str, object] = {}
     captured_combined: dict[str, object] = {}
+    captured_final_selection: dict[str, object] = {}
 
     def fake_full_analysis(
         **kwargs: object,
@@ -277,34 +347,46 @@ def test_run_complete_analysis_passes_arguments(
         captured_combined.update(kwargs)
         return create_combined_summary()
 
+    def fake_final_selection(
+        **kwargs: object,
+    ) -> dict[str, object]:
+        captured_final_selection.update(kwargs)
+        return create_final_candidate_selection()
+
     monkeypatch.setattr(
         module,
         "run_full_analysis",
         fake_full_analysis,
     )
-
     monkeypatch.setattr(
         module,
         "run_fundamental_batch_analysis",
         fake_fundamental_analysis,
     )
-
     monkeypatch.setattr(
         module,
         "combine_analysis_summaries",
         fake_combined_analysis,
     )
-
+    monkeypatch.setattr(
+        module,
+        "select_combined_candidates",
+        fake_final_selection,
+    )
     monkeypatch.setattr(
         module,
         "build_fundamental_report",
         lambda summary: "# Temel\n",
     )
-
     monkeypatch.setattr(
         module,
         "build_combined_report",
         lambda summary: "# Birleşik\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "build_final_candidate_report",
+        lambda result: "# Nihai Adaylar\n",
     )
 
     run_complete_analysis(
@@ -326,12 +408,6 @@ def test_run_complete_analysis_passes_arguments(
     ]
     assert captured_technical["period"] == "6mo"
     assert captured_technical["max_candidates"] == 4
-    assert (
-        captured_technical[
-            "max_strong_candidates"
-        ]
-        == 2
-    )
 
     assert captured_fundamental["symbols"] == [
         "THYAO",
@@ -344,11 +420,34 @@ def test_run_complete_analysis_passes_arguments(
         == 0.40
     )
 
+    assert (
+        captured_final_selection["max_candidates"]
+        == 4
+    )
+    assert (
+        captured_final_selection[
+            "max_strong_candidates"
+        ]
+        == 2
+    )
+    assert (
+        captured_final_selection[
+            "candidate_threshold"
+        ]
+        == 55.0
+    )
+    assert (
+        captured_final_selection["strong_threshold"]
+        == 70.0
+    )
+
 
 def test_run_complete_analysis_uses_custom_paths(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    configure_successful_mocks(monkeypatch)
+
     fundamental_json_path = (
         tmp_path / "custom_fundamental.json"
     )
@@ -361,35 +460,11 @@ def test_run_complete_analysis_uses_custom_paths(
     combined_report_path = (
         tmp_path / "custom_combined.md"
     )
-
-    monkeypatch.setattr(
-        module,
-        "run_full_analysis",
-        lambda **kwargs: create_technical_result(),
+    final_candidate_json_path = (
+        tmp_path / "custom_candidates.json"
     )
-
-    monkeypatch.setattr(
-        module,
-        "run_fundamental_batch_analysis",
-        lambda **kwargs: create_fundamental_summary(),
-    )
-
-    monkeypatch.setattr(
-        module,
-        "combine_analysis_summaries",
-        lambda **kwargs: create_combined_summary(),
-    )
-
-    monkeypatch.setattr(
-        module,
-        "build_fundamental_report",
-        lambda summary: "# Temel\n",
-    )
-
-    monkeypatch.setattr(
-        module,
-        "build_combined_report",
-        lambda summary: "# Birleşik\n",
+    final_candidate_report_path = (
+        tmp_path / "custom_candidates.md"
     )
 
     result = run_complete_analysis(
@@ -403,21 +478,29 @@ def test_run_complete_analysis_uses_custom_paths(
         ),
         combined_json_path=combined_json_path,
         combined_report_path=combined_report_path,
+        final_candidate_json_path=(
+            final_candidate_json_path
+        ),
+        final_candidate_report_path=(
+            final_candidate_report_path
+        ),
     )
 
     assert fundamental_json_path.exists()
     assert fundamental_report_path.exists()
     assert combined_json_path.exists()
     assert combined_report_path.exists()
+    assert final_candidate_json_path.exists()
+    assert final_candidate_report_path.exists()
 
     outputs = result["outputs"]
 
     assert isinstance(outputs, dict)
-    assert outputs["fundamental_json"] == str(
-        fundamental_json_path
+    assert outputs["final_candidates_json"] == str(
+        final_candidate_json_path
     )
-    assert outputs["combined_markdown"] == str(
-        combined_report_path
+    assert outputs["final_candidates_markdown"] == str(
+        final_candidate_report_path
     )
 
 
@@ -498,10 +581,11 @@ def test_main_uses_explicit_symbols(
     assert "Birleşik analiz: 3" in terminal_output
     assert "Teknik aday: 3" in terminal_output
     assert "Güçlü teknik aday: 2" in terminal_output
+    assert "Nihai aday: 2" in terminal_output
+    assert "Güçlü nihai aday: 1" in terminal_output
 
     assert (
-        "En yüksek birleşik puan: "
-        "ASELS - 71.85"
+        "En yüksek nihai aday: ASELS - 71.85"
         in terminal_output
     )
 

@@ -17,6 +17,12 @@ from src.candidate_selection import (
     DEFAULT_MAX_STRONG_CANDIDATES,
     DEFAULT_STRONG_THRESHOLD,
 )
+from src.combined_candidate_selection import (
+    build_markdown_report as build_final_candidate_report,
+    save_json_result as save_final_candidate_json,
+    save_markdown_report as save_final_candidate_report,
+    select_combined_candidates,
+)
 from src.combined_scoring import (
     DEFAULT_FUNDAMENTAL_WEIGHT,
     DEFAULT_TECHNICAL_WEIGHT,
@@ -70,6 +76,8 @@ def run_complete_analysis(
     fundamental_report_path: Path | None = None,
     combined_json_path: Path | None = None,
     combined_report_path: Path | None = None,
+    final_candidate_json_path: Path | None = None,
+    final_candidate_report_path: Path | None = None,
 ) -> dict[str, object]:
     if not symbols:
         raise ValueError(
@@ -91,12 +99,12 @@ def run_complete_analysis(
         / "bist_batch_analysis.md"
     )
 
-    candidate_json_path = (
+    technical_candidate_json_path = (
         report_directory
         / "bist_candidates.json"
     )
 
-    candidate_report_path = (
+    technical_candidate_report_path = (
         report_directory
         / "bist_candidates.md"
     )
@@ -125,6 +133,18 @@ def run_complete_analysis(
             / "bist_combined_analysis.md"
         )
 
+    if final_candidate_json_path is None:
+        final_candidate_json_path = (
+            report_directory
+            / "bist_combined_candidates.json"
+        )
+
+    if final_candidate_report_path is None:
+        final_candidate_report_path = (
+            report_directory
+            / "bist_combined_candidates.md"
+        )
+
     technical_result = run_full_analysis(
         symbols=symbols,
         period=period,
@@ -132,8 +152,8 @@ def run_complete_analysis(
         report_directory=report_directory,
         batch_json_path=technical_batch_json_path,
         batch_report_path=technical_batch_report_path,
-        candidate_json_path=candidate_json_path,
-        candidate_report_path=candidate_report_path,
+        candidate_json_path=technical_candidate_json_path,
+        candidate_report_path=technical_candidate_report_path,
         max_candidates=max_candidates,
         max_strong_candidates=max_strong_candidates,
         candidate_threshold=candidate_threshold,
@@ -193,10 +213,41 @@ def run_complete_analysis(
         output_path=combined_report_path,
     )
 
+    final_candidate_selection = (
+        select_combined_candidates(
+            combined_summary=combined_summary,
+            max_candidates=max_candidates,
+            max_strong_candidates=(
+                max_strong_candidates
+            ),
+            candidate_threshold=candidate_threshold,
+            strong_threshold=strong_threshold,
+        )
+    )
+
+    save_final_candidate_json(
+        selection_result=final_candidate_selection,
+        output_path=final_candidate_json_path,
+    )
+
+    final_candidate_markdown = (
+        build_final_candidate_report(
+            final_candidate_selection
+        )
+    )
+
+    save_final_candidate_report(
+        markdown_report=final_candidate_markdown,
+        output_path=final_candidate_report_path,
+    )
+
     return {
         "technical_analysis": technical_result,
         "fundamental_analysis": fundamental_summary,
         "combined_analysis": combined_summary,
+        "final_candidate_selection": (
+            final_candidate_selection
+        ),
         "outputs": {
             "technical_batch_json": str(
                 technical_batch_json_path
@@ -205,10 +256,10 @@ def run_complete_analysis(
                 technical_batch_report_path
             ),
             "technical_candidates_json": str(
-                candidate_json_path
+                technical_candidate_json_path
             ),
             "technical_candidates_markdown": str(
-                candidate_report_path
+                technical_candidate_report_path
             ),
             "fundamental_json": str(
                 fundamental_json_path
@@ -222,6 +273,12 @@ def run_complete_analysis(
             "combined_markdown": str(
                 combined_report_path
             ),
+            "final_candidates_json": str(
+                final_candidate_json_path
+            ),
+            "final_candidates_markdown": str(
+                final_candidate_report_path
+            ),
         },
     }
 
@@ -230,8 +287,8 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "BIST hisseleri için teknik analiz, "
-            "temel analiz ve birleşik puanlamayı "
-            "tek komutta çalıştırır."
+            "temel analiz, birleşik puanlama ve "
+            "nihai aday seçimini tek komutta çalıştırır."
         )
     )
 
@@ -292,7 +349,7 @@ def parse_arguments() -> argparse.Namespace:
         "--max-candidates",
         type=int,
         default=DEFAULT_MAX_CANDIDATES,
-        help="Maksimum teknik aday sayısı. Varsayılan: 5",
+        help="Maksimum aday sayısı. Varsayılan: 5",
     )
 
     parser.add_argument(
@@ -300,7 +357,7 @@ def parse_arguments() -> argparse.Namespace:
         type=int,
         default=DEFAULT_MAX_STRONG_CANDIDATES,
         help=(
-            "Maksimum güçlü teknik aday sayısı. "
+            "Maksimum güçlü aday sayısı. "
             "Varsayılan: 3"
         ),
     )
@@ -309,7 +366,7 @@ def parse_arguments() -> argparse.Namespace:
         "--candidate-threshold",
         type=float,
         default=DEFAULT_CANDIDATE_THRESHOLD,
-        help="Teknik aday puan eşiği. Varsayılan: 50",
+        help="Aday puan eşiği. Varsayılan: 50",
     )
 
     parser.add_argument(
@@ -317,7 +374,7 @@ def parse_arguments() -> argparse.Namespace:
         type=float,
         default=DEFAULT_STRONG_THRESHOLD,
         help=(
-            "Güçlü teknik aday puan eşiği. "
+            "Güçlü aday puan eşiği. "
             "Varsayılan: 60"
         ),
     )
@@ -354,6 +411,20 @@ def parse_arguments() -> argparse.Namespace:
             "Birleşik analiz Markdown "
             "raporunun yolu."
         ),
+    )
+
+    parser.add_argument(
+        "--final-candidate-json-output",
+        type=Path,
+        default=None,
+        help="Nihai aday JSON dosyasının yolu.",
+    )
+
+    parser.add_argument(
+        "--final-candidate-report-output",
+        type=Path,
+        default=None,
+        help="Nihai aday Markdown raporunun yolu.",
     )
 
     return parser.parse_args()
@@ -401,6 +472,12 @@ def main() -> int:
             combined_report_path=(
                 arguments.combined_report_output
             ),
+            final_candidate_json_path=(
+                arguments.final_candidate_json_output
+            ),
+            final_candidate_report_path=(
+                arguments.final_candidate_report_output
+            ),
         )
 
         technical_result = result.get(
@@ -411,6 +488,9 @@ def main() -> int:
         )
         combined_summary = result.get(
             "combined_analysis"
+        )
+        final_candidate_selection = result.get(
+            "final_candidate_selection"
         )
         outputs = result.get("outputs")
 
@@ -429,6 +509,14 @@ def main() -> int:
                 "Birleşik analiz sonucu kullanılamıyor."
             )
 
+        if not isinstance(
+            final_candidate_selection,
+            dict,
+        ):
+            raise ValueError(
+                "Nihai aday sonucu kullanılamıyor."
+            )
+
         if not isinstance(outputs, dict):
             raise ValueError(
                 "Çıktı yolları kullanılamıyor."
@@ -437,8 +525,10 @@ def main() -> int:
         technical_summary = technical_result.get(
             "batch_summary"
         )
-        candidate_selection = technical_result.get(
-            "candidate_selection"
+        technical_candidate_selection = (
+            technical_result.get(
+                "candidate_selection"
+            )
         )
 
         if not isinstance(technical_summary, dict):
@@ -446,7 +536,10 @@ def main() -> int:
                 "Toplu teknik analiz sonucu kullanılamıyor."
             )
 
-        if not isinstance(candidate_selection, dict):
+        if not isinstance(
+            technical_candidate_selection,
+            dict,
+        ):
             raise ValueError(
                 "Teknik aday sonucu kullanılamıyor."
             )
@@ -463,12 +556,26 @@ def main() -> int:
             combined_summary["combined_count"]
         )
 
-        candidate_count = int(
-            candidate_selection["candidate_count"]
+        technical_candidate_count = int(
+            technical_candidate_selection[
+                "candidate_count"
+            ]
         )
 
-        strong_candidate_count = int(
-            candidate_selection[
+        technical_strong_candidate_count = int(
+            technical_candidate_selection[
+                "strong_candidate_count"
+            ]
+        )
+
+        final_candidate_count = int(
+            final_candidate_selection[
+                "candidate_count"
+            ]
+        )
+
+        final_strong_candidate_count = int(
+            final_candidate_selection[
                 "strong_candidate_count"
             ]
         )
@@ -493,28 +600,37 @@ def main() -> int:
             f"Birleşik analiz: {combined_count}"
         )
         print(
-            f"Teknik aday: {candidate_count}"
+            f"Teknik aday: {technical_candidate_count}"
         )
         print(
-            f"Güçlü teknik aday: "
-            f"{strong_candidate_count}"
+            "Güçlü teknik aday: "
+            f"{technical_strong_candidate_count}"
+        )
+        print(
+            f"Nihai aday: {final_candidate_count}"
+        )
+        print(
+            "Güçlü nihai aday: "
+            f"{final_strong_candidate_count}"
         )
 
-        combined_results = combined_summary.get(
-            "results"
+        final_candidates = (
+            final_candidate_selection.get(
+                "candidates"
+            )
         )
 
         if (
-            isinstance(combined_results, list)
-            and combined_results
+            isinstance(final_candidates, list)
+            and final_candidates
         ):
-            top_result = combined_results[0]
+            top_candidate = final_candidates[0]
 
-            if isinstance(top_result, dict):
+            if isinstance(top_candidate, dict):
                 print(
-                    f"En yüksek birleşik puan: "
-                    f"{top_result['symbol']} - "
-                    f"{top_result['combined_score']}"
+                    f"En yüksek nihai aday: "
+                    f"{top_candidate['symbol']} - "
+                    f"{top_candidate['combined_score']}"
                 )
 
         print(
@@ -528,6 +644,10 @@ def main() -> int:
         print(
             f"Birleşik analiz raporu: "
             f"{Path(str(outputs['combined_markdown'])).resolve()}"
+        )
+        print(
+            f"Nihai aday raporu: "
+            f"{Path(str(outputs['final_candidates_markdown'])).resolve()}"
         )
 
         return 0
