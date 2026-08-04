@@ -16,9 +16,9 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 from src.download_bist_prices import normalize_bist_symbol
-from src.news_sources.yahoo_source import (
+from src.news_sources.multi_source import (
     SOURCE_NAME,
-    fetch_yahoo_news,
+    fetch_multi_source_news,
 )
 
 
@@ -357,14 +357,29 @@ def extract_news_article(
                     cleaned_ticker.upper()
                 )
 
+    provider = extract_provider(
+        raw_article,
+        content,
+    )
+
+    source_name = (
+        safe_text(
+            raw_article.get("source_name")
+        )
+        or provider
+    )
+
+    source_type = safe_text(
+        raw_article.get("source_type")
+    )
+
     return {
         "id": article_id,
         "title": title,
         "summary": summary,
-        "provider": extract_provider(
-            raw_article,
-            content,
-        ),
+        "provider": provider,
+        "source_name": source_name,
+        "source_type": source_type,
         "published_at": (
             published_datetime.isoformat()
             if published_datetime is not None
@@ -382,7 +397,7 @@ def fetch_company_news(
     symbol: str,
     count: int = DEFAULT_NEWS_COUNT,
 ) -> list[dict[str, object]]:
-    return fetch_yahoo_news(
+    return fetch_multi_source_news(
         symbol=symbol,
         count=count,
     )
@@ -543,7 +558,10 @@ def calculate_data_confidence(
     provider_count = sum(
         1
         for article in articles
-        if article.get("provider") is not None
+        if (
+            article.get("provider") is not None
+            or article.get("source_name") is not None
+        )
     )
 
     dated_ratio = (
@@ -718,6 +736,34 @@ def analyze_news_articles(
         )
     )
 
+    source_types = sorted(
+        {
+            source_type
+            for article in analyzed_articles
+            if (
+                source_type
+                := safe_text(
+                    article.get("source_type")
+                )
+            )
+            is not None
+        }
+    )
+
+    source_names = sorted(
+        {
+            source_name
+            for article in analyzed_articles
+            if (
+                source_name
+                := safe_text(
+                    article.get("source_name")
+                )
+            )
+            is not None
+        }
+    )
+
     notes = [
         (
             "Haber duygu puanı başlık ve özetlerdeki "
@@ -729,9 +775,12 @@ def analyze_news_articles(
             "yüksek ağırlıkla değerlendirilmiştir."
         ),
         (
-            "Bu ilk sürüm Yahoo Finance haber akışını "
-            "kullanır; KAP bildirimleri ayrı veri "
-            "kaynağı olarak eklenecektir."
+            "Haberler Yahoo Finance ve Türkçe RSS "
+            "kaynaklarından toplanıp tekilleştirilmiştir."
+        ),
+        (
+            "Kaynaklardan biri çalışmazsa analiz diğer "
+            "çalışan kaynaklarla devam eder."
         ),
         (
             "Haber puanı tek başına yatırım kararı "
@@ -756,6 +805,8 @@ def analyze_news_articles(
         "symbol": base_symbol,
         "yahoo_symbol": yahoo_symbol,
         "source": SOURCE_NAME,
+        "source_types": source_types,
+        "source_names": source_names,
         "lookback_days": lookback_days,
         "fetched_count": len(raw_articles),
         "analyzed_count": len(
@@ -841,6 +892,10 @@ def build_markdown_report(
     risk_keywords = analysis_result[
         "risk_keywords"
     ]
+    source_names = analysis_result.get(
+        "source_names",
+        [],
+    )
     articles = analysis_result["articles"]
     notes = analysis_result["notes"]
 
@@ -850,6 +905,18 @@ def build_markdown_report(
         f"- Oluşturulma zamanı: {generated_at}",
         f"- İncelenen dönem: Son {lookback_days} gün",
         f"- Analiz edilen haber: {analyzed_count}",
+        (
+            "- Kullanılan kaynaklar: "
+            + (
+                ", ".join(
+                    str(source)
+                    for source in source_names
+                )
+                if isinstance(source_names, list)
+                and source_names
+                else "Kullanılabilir kaynak bulunamadı"
+            )
+        ),
         "",
         "## Genel Sonuç",
         "",
@@ -874,10 +941,10 @@ def build_markdown_report(
         lines.extend(
             [
                 (
-                    "| Tarih | Başlık | Kaynak "
-                    "| Duygu | Puan |"
+                    "| Tarih | Başlık | Yayıncı "
+                    "| Akış | Duygu | Puan |"
                 ),
-                "|---|---|---|---|---:|",
+                "|---|---|---|---|---|---:|",
             ]
         )
 
@@ -910,6 +977,10 @@ def build_markdown_report(
                 article.get("provider")
             )
 
+            source_name = escape_markdown_text(
+                article.get("source_name")
+            )
+
             sentiment_label = (
                 escape_markdown_text(
                     article.get(
@@ -934,6 +1005,7 @@ def build_markdown_report(
                 f"| {published_at} "
                 f"| {title} "
                 f"| {provider} "
+                f"| {source_name} "
                 f"| {sentiment_label} "
                 f"| {score_text} |"
             )
@@ -1024,8 +1096,9 @@ def save_markdown_report(
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Yahoo Finance haberleriyle BIST "
-            "şirketi haber analizi yapar."
+            "Yahoo Finance ve Türkçe RSS "
+            "kaynaklarıyla BIST şirketi "
+            "haber analizi yapar."
         )
     )
 
@@ -1038,7 +1111,7 @@ def parse_arguments() -> argparse.Namespace:
         "--count",
         type=int,
         default=DEFAULT_NEWS_COUNT,
-        help="İndirilecek haber sayısı. Varsayılan: 30",
+        help="Toplanacak azami haber sayısı. Varsayılan: 30",
     )
 
     parser.add_argument(
@@ -1113,7 +1186,7 @@ def main() -> int:
         )
 
         print(
-            "BAŞARILI: Haber analizi tamamlandı."
+            "BAŞARILI: Çoklu kaynak haber analizi tamamlandı."
         )
         print(f"Hisse: {base_symbol}")
         print(
@@ -1128,6 +1201,29 @@ def main() -> int:
             "Veri güveni: "
             f"{analysis_result['data_confidence']}%"
         )
+
+        source_names = analysis_result.get(
+            "source_names",
+            [],
+        )
+
+        if (
+            isinstance(source_names, list)
+            and source_names
+        ):
+            print(
+                "Kullanılan kaynaklar: "
+                + ", ".join(
+                    str(source)
+                    for source in source_names
+                )
+            )
+        else:
+            print(
+                "Kullanılan kaynaklar: "
+                "Kullanılabilir kaynak bulunamadı"
+            )
+
         print(
             f"JSON sonucu: "
             f"{json_output_path.resolve()}"

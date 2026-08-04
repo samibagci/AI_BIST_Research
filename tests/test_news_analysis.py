@@ -62,6 +62,8 @@ def create_raw_article(
         "relatedTickers": [
             "THYAO.IS",
         ],
+        "source_name": "Yahoo Finance / yfinance",
+        "source_type": "yahoo",
     }
 
 
@@ -100,7 +102,10 @@ def test_safe_number_rejects_invalid_values(
 
 
 def test_safe_text_cleans_whitespace() -> None:
-    assert safe_text("  Örnek   Haber  ") == "Örnek Haber"
+    assert safe_text(
+        "  Örnek   Haber  "
+    ) == "Örnek Haber"
+
     assert safe_text("") is None
     assert safe_text("   ") is None
     assert safe_text(123) is None
@@ -207,19 +212,31 @@ def test_extract_news_article_reads_nested_content() -> None:
 
     assert article is not None
     assert article["id"] == "haber-1"
+
     assert (
         article["title"]
         == "Şirket rekor büyüme açıkladı"
     )
+
     assert article["provider"] == "Örnek Haber"
+
+    assert (
+        article["source_name"]
+        == "Yahoo Finance / yfinance"
+    )
+
+    assert article["source_type"] == "yahoo"
+
     assert (
         article["published_at"]
         == "2026-07-31T10:00:00+00:00"
     )
+
     assert (
         article["url"]
         == "https://example.com/haber-1"
     )
+
     assert article["related_tickers"] == [
         "THYAO.IS",
     ]
@@ -236,13 +253,34 @@ def test_extract_news_article_supports_flat_content() -> None:
                 REFERENCE_TIME.timestamp()
             ),
             "link": "https://example.com/flat",
+            "source_name": "Türkçe Finans RSS",
+            "source_type": "rss",
         }
     )
 
     assert article is not None
     assert article["id"] == "flat-1"
     assert article["provider"] == "Finans Haber"
-    assert article["url"] == "https://example.com/flat"
+    assert article["source_name"] == "Türkçe Finans RSS"
+    assert article["source_type"] == "rss"
+
+    assert (
+        article["url"]
+        == "https://example.com/flat"
+    )
+
+
+def test_extract_news_article_uses_provider_as_source_name() -> None:
+    article = extract_news_article(
+        {
+            "title": "Şirket açıklama yaptı",
+            "publisher": "Örnek Yayıncı",
+        }
+    )
+
+    assert article is not None
+    assert article["provider"] == "Örnek Yayıncı"
+    assert article["source_name"] == "Örnek Yayıncı"
 
 
 def test_extract_news_article_rejects_missing_title() -> None:
@@ -260,12 +298,12 @@ def test_extract_news_article_rejects_missing_title() -> None:
     assert extract_news_article("haber") is None
 
 
-def test_fetch_company_news_uses_yahoo_source(
+def test_fetch_company_news_uses_multi_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def fake_fetch_yahoo_news(
+    def fake_fetch_multi_source_news(
         symbol: str,
         count: int,
     ) -> list[dict[str, object]]:
@@ -278,8 +316,8 @@ def test_fetch_company_news_uses_yahoo_source(
 
     monkeypatch.setattr(
         module,
-        "fetch_yahoo_news",
-        fake_fetch_yahoo_news,
+        "fetch_multi_source_news",
+        fake_fetch_multi_source_news,
     )
 
     result = fetch_company_news(
@@ -297,14 +335,33 @@ def test_fetch_company_news_returns_empty_list(
 ) -> None:
     monkeypatch.setattr(
         module,
-        "fetch_yahoo_news",
+        "fetch_multi_source_news",
         lambda symbol, count: [],
     )
 
     assert fetch_company_news("THYAO") == []
 
 
-def test_fetch_company_news_rejects_invalid_count() -> None:
+def test_fetch_company_news_rejects_invalid_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_fetch_multi_source_news(
+        symbol: str,
+        count: int,
+    ) -> list[dict[str, object]]:
+        if count < 1:
+            raise ValueError(
+                "Haber sayısı en az 1 olmalıdır."
+            )
+
+        return []
+
+    monkeypatch.setattr(
+        module,
+        "fetch_multi_source_news",
+        fake_fetch_multi_source_news,
+    )
+
     with pytest.raises(
         ValueError,
         match="Haber sayısı en az 1",
@@ -330,7 +387,10 @@ def test_calculate_positive_article_sentiment() -> None:
 def test_calculate_negative_article_sentiment() -> None:
     result = calculate_article_sentiment(
         title="Şirket zarar açıkladı",
-        summary="Üretim durdu ve soruşturma başlatıldı.",
+        summary=(
+            "Üretim durdu ve soruşturma "
+            "başlatıldı."
+        ),
     )
 
     assert result["sentiment_value"] == -1.0
@@ -342,7 +402,10 @@ def test_calculate_negative_article_sentiment() -> None:
 
 def test_calculate_neutral_article_sentiment() -> None:
     result = calculate_article_sentiment(
-        title="Şirket genel kurul tarihini açıkladı",
+        title=(
+            "Şirket genel kurul tarihini "
+            "açıkladı"
+        ),
         summary=None,
     )
 
@@ -446,7 +509,26 @@ def test_calculate_data_confidence_full() -> None:
         for _ in range(10)
     ]
 
-    assert calculate_data_confidence(articles) == 100.0
+    assert calculate_data_confidence(
+        articles
+    ) == 100.0
+
+
+def test_calculate_data_confidence_accepts_source_name() -> None:
+    articles = [
+        {
+            "published_at": (
+                "2026-07-31T10:00:00+00:00"
+            ),
+            "provider": None,
+            "source_name": "RSS Kaynağı",
+        }
+        for _ in range(10)
+    ]
+
+    assert calculate_data_confidence(
+        articles
+    ) == 100.0
 
 
 def test_calculate_data_confidence_empty() -> None:
@@ -497,6 +579,56 @@ def test_analyze_news_articles_filters_old_news() -> None:
     assert result["label"] == "HAFİF OLUMLU"
     assert "üretim durdu" in result["risk_keywords"]
 
+    assert result["source_types"] == [
+        "yahoo",
+    ]
+
+    assert result["source_names"] == [
+        "Yahoo Finance / yfinance",
+    ]
+
+
+def test_analyze_news_articles_collects_multiple_sources() -> None:
+    yahoo_article = create_raw_article(
+        article_id="yahoo-1",
+        title="Şirket büyüme açıkladı",
+        summary="Satış artışı gerçekleşti.",
+        provider="Yahoo Yayıncısı",
+    )
+
+    rss_article = {
+        "id": "rss-1",
+        "title": "Türk Hava Yolları yatırım açıkladı",
+        "summary": "Yeni yatırım kararı alındı.",
+        "publisher": "RSS Yayıncısı",
+        "publishedAt": "2026-07-30T10:00:00Z",
+        "link": "https://example.com/rss-1",
+        "source_name": "Türkçe Finans RSS",
+        "source_type": "rss",
+    }
+
+    result = analyze_news_articles(
+        symbol="THYAO",
+        raw_articles=[
+            yahoo_article,
+            rss_article,
+        ],
+        lookback_days=30,
+        reference_time=REFERENCE_TIME,
+    )
+
+    assert result["analyzed_count"] == 2
+
+    assert result["source_types"] == [
+        "rss",
+        "yahoo",
+    ]
+
+    assert result["source_names"] == [
+        "Türkçe Finans RSS",
+        "Yahoo Finance / yfinance",
+    ]
+
 
 def test_analyze_news_articles_handles_empty_news() -> None:
     result = analyze_news_articles(
@@ -509,6 +641,8 @@ def test_analyze_news_articles_handles_empty_news() -> None:
     assert result["news_sentiment_score"] == 50.0
     assert result["label"] == "NÖTR"
     assert result["data_confidence"] == 0.0
+    assert result["source_types"] == []
+    assert result["source_names"] == []
 
 
 def test_analyze_news_articles_rejects_invalid_lookback() -> None:
@@ -550,12 +684,43 @@ def test_build_markdown_report_contains_news() -> None:
 
     markdown = build_markdown_report(result)
 
-    assert "# THYAO Haber Analizi Raporu" in markdown
-    assert "Haber duygu puanı: **100.00 / 100**" in markdown
-    assert "Şirket rekor büyüme açıkladı" in markdown
+    assert (
+        "# THYAO Haber Analizi Raporu"
+        in markdown
+    )
+
+    assert (
+        "Haber duygu puanı: **100.00 / 100**"
+        in markdown
+    )
+
+    assert (
+        "Kullanılan kaynaklar: "
+        "Yahoo Finance / yfinance"
+        in markdown
+    )
+
+    assert (
+        "Şirket rekor büyüme açıkladı"
+        in markdown
+    )
+
     assert "Örnek Haber" in markdown
-    assert "https://example.com/haber-1" in markdown
-    assert "yatırım tavsiyesi değildir" in markdown
+
+    assert (
+        "Yahoo Finance / yfinance"
+        in markdown
+    )
+
+    assert (
+        "https://example.com/haber-1"
+        in markdown
+    )
+
+    assert (
+        "yatırım tavsiyesi değildir"
+        in markdown
+    )
 
 
 def test_save_analysis_files(
@@ -563,8 +728,17 @@ def test_save_analysis_files(
 ) -> None:
     result = create_analysis_result()
 
-    json_path = tmp_path / "reports" / "news.json"
-    markdown_path = tmp_path / "reports" / "news.md"
+    json_path = (
+        tmp_path
+        / "reports"
+        / "news.json"
+    )
+
+    markdown_path = (
+        tmp_path
+        / "reports"
+        / "news.md"
+    )
 
     save_json_result(
         analysis_result=result,
@@ -580,14 +754,23 @@ def test_save_analysis_files(
     assert markdown_path.exists()
 
     saved_result = json.loads(
-        json_path.read_text(encoding="utf-8")
+        json_path.read_text(
+            encoding="utf-8"
+        )
     )
 
     assert saved_result["symbol"] == "THYAO"
     assert saved_result["analyzed_count"] == 1
 
     assert (
-        markdown_path.read_text(encoding="utf-8")
+        saved_result["source_types"]
+        == ["yahoo"]
+    )
+
+    assert (
+        markdown_path.read_text(
+            encoding="utf-8"
+        )
         == "# Haber Analizi\n"
     )
 
@@ -625,7 +808,9 @@ def test_main_completes_news_analysis(
     )
 
     exit_code = module.main()
-    terminal_output = capsys.readouterr().out
+    terminal_output = (
+        capsys.readouterr().out
+    )
 
     assert exit_code == 0
     assert json_path.exists()
@@ -633,8 +818,22 @@ def test_main_completes_news_analysis(
 
     assert "BAŞARILI" in terminal_output
     assert "Hisse: THYAO" in terminal_output
-    assert "Analiz edilen haber: 1" in terminal_output
-    assert "Haber duygu puanı: 100.0" in terminal_output
+
+    assert (
+        "Analiz edilen haber: 1"
+        in terminal_output
+    )
+
+    assert (
+        "Haber duygu puanı: 100.0"
+        in terminal_output
+    )
+
+    assert (
+        "Kullanılan kaynaklar: "
+        "Yahoo Finance / yfinance"
+        in terminal_output
+    )
 
 
 def test_main_returns_error_for_invalid_symbol(
@@ -651,8 +850,14 @@ def test_main_returns_error_for_invalid_symbol(
     )
 
     exit_code = module.main()
-    terminal_output = capsys.readouterr().out
+    terminal_output = (
+        capsys.readouterr().out
+    )
 
     assert exit_code == 1
     assert "HATA" in terminal_output
-    assert "Geçersiz hisse kodu" in terminal_output
+
+    assert (
+        "Geçersiz hisse kodu"
+        in terminal_output
+    )
