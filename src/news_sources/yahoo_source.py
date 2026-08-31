@@ -11,7 +11,7 @@ from src.download_bist_prices import (
     normalize_bist_symbol,
 )
 from src.news_relevance import (
-    is_company_news_relevant,
+    is_investment_relevant_company_news,
 )
 
 
@@ -117,7 +117,7 @@ def filter_yahoo_news_by_relevance(
             )
         )
 
-        if not is_company_news_relevant(
+        if not is_investment_relevant_company_news(
             article=relevance_article,
             aliases=aliases,
         ):
