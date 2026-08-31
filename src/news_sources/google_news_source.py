@@ -9,6 +9,9 @@ from urllib.parse import quote_plus
 from src.download_bist_prices import (
     normalize_bist_symbol,
 )
+from src.news_relevance import (
+    is_company_news_relevant,
+)
 from src.news_sources.rss_source import (
     DEFAULT_REQUEST_TIMEOUT,
     article_sort_datetime,
@@ -132,21 +135,10 @@ def is_google_article_relevant(
     article: Mapping[str, object],
     aliases: Sequence[str],
 ) -> bool:
-    combined_text = article_combined_text(
-        article
+    return is_company_news_relevant(
+        article=article,
+        aliases=aliases,
     )
-
-    if not combined_text:
-        return False
-
-    return any(
-        text_contains_alias(
-            combined_text,
-            alias,
-        )
-        for alias in aliases
-    )
-
 def quote_search_term(
     value: str,
 ) -> str:
