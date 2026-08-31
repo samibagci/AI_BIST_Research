@@ -10,7 +10,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 from src.news_relevance import (
-    is_company_news_relevant,
+    is_investment_relevant_company_news,
 )
 from src.company_registry import (
     get_company_aliases,
@@ -589,7 +589,7 @@ def is_article_relevant(
     article: Mapping[str, object],
     aliases: Sequence[str],
 ) -> bool:
-    return is_company_news_relevant(
+    return is_investment_relevant_company_news(
         article=article,
         aliases=aliases,
     )
