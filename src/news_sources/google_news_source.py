@@ -10,7 +10,7 @@ from src.download_bist_prices import (
     normalize_bist_symbol,
 )
 from src.news_relevance import (
-    is_company_news_relevant,
+    is_investment_relevant_company_news,
 )
 from src.news_sources.rss_source import (
     DEFAULT_REQUEST_TIMEOUT,
@@ -135,7 +135,7 @@ def is_google_article_relevant(
     article: Mapping[str, object],
     aliases: Sequence[str],
 ) -> bool:
-    return is_company_news_relevant(
+    return is_investment_relevant_company_news(
         article=article,
         aliases=aliases,
     )
