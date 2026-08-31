@@ -92,6 +92,157 @@ NON_BUSINESS_CONTEXT_TERMS = (
 )
 
 
+INVESTMENT_CONTEXT_TERMS = (
+    # Finansal sonuçlar
+    "bilanço",
+    "bilanco",
+    "finansal sonuç",
+    "finansal sonuc",
+    "faaliyet raporu",
+    "ciro",
+    "hasılat",
+    "hasilat",
+    "gelir",
+    "kâr",
+    "kar",
+    "zarar",
+    "favök",
+    "favok",
+    "ebitda",
+    "marj",
+    "nakit",
+    "borç",
+    "borc",
+    "finansman",
+    "kredi",
+    "vergi",
+
+    # Sermaye ve hisse
+    "hisse",
+    "borsa",
+    "bist",
+    "yatırımcı",
+    "yatirimci",
+    "temettü",
+    "temettu",
+    "sermaye",
+    "bedelsiz",
+    "bedelli",
+    "geri alım",
+    "geri alim",
+    "halka arz",
+    "hedef fiyat",
+    "model portföy",
+    "model portfoy",
+    "al tavsiyesi",
+    "sat tavsiyesi",
+    "teknik analiz",
+    "temel analiz",
+    "açığa satış",
+    "aciga satis",
+    "takas oranı",
+    "takas orani",
+
+    # Operasyon ve büyüme
+    "yatırım",
+    "yatirim",
+    "üretim",
+    "uretim",
+    "kapasite",
+    "tesis",
+    "fabrika",
+    "sipariş",
+    "siparis",
+    "sözleşme",
+    "sozlesme",
+    "anlaşma",
+    "anlasma",
+    "ihale",
+    "tedarik",
+    "teslimat",
+    "ihracat",
+    "ithalat",
+    "satış",
+    "satis",
+    "müşteri",
+    "musteri",
+    "pazar",
+    "operasyon",
+
+    # Ürün ve teknoloji
+    "ürün",
+    "urun",
+    "sistem",
+    "teknoloji",
+    "platform",
+    "araç",
+    "arac",
+    "entegrasyon",
+    "geliştirdi",
+    "gelistirdi",
+    "geliştiriyor",
+    "gelistiriyor",
+    "tanıttı",
+    "tanitti",
+
+    # Şirket yapısı
+    "satın alma",
+    "satin alma",
+    "birleşme",
+    "birlesme",
+    "devralma",
+    "iştirak",
+    "istirak",
+    "ortaklık",
+    "ortaklik",
+    "atama",
+    "istifa",
+
+    # Resmî / düzenleyici
+    "kap",
+    "özel durum açıklaması",
+    "ozel durum aciklamasi",
+    "kredi notu",
+    "lisans",
+    "ruhsat",
+    "teşvik",
+    "tesvik",
+    "dava",
+    "ceza",
+
+    # Stratejik iş
+    "iş birliği",
+    "is birligi",
+    "sponsorluk",
+)
+
+
+LOW_VALUE_CORPORATE_CONTEXT_TERMS = (
+    "çocuk şenliği",
+    "cocuk senligi",
+    "şenlik",
+    "senlik",
+    "öğrenci",
+    "ogrenci",
+    "lise",
+    "okul",
+    "kariyer günü",
+    "kariyer gunu",
+    "sosyal sorumluluk",
+    "ziyaret etti",
+    "ziyaret",
+    "kabul etti",
+    "ağırladı",
+    "agirladi",
+    "kutlama",
+    "tören",
+    "toren",
+    "festival",
+    "söyleşi",
+    "soylesi",
+)
+
+
 TURKISH_WORD_SUFFIXES = (
     "lar",
     "ler",
@@ -108,7 +259,6 @@ TURKISH_WORD_SUFFIXES = (
     "i",
     "imiz",
     "iniz",
-    "leri",
     "um",
     "un",
     "u",
@@ -409,6 +559,38 @@ def has_non_business_context(
     )
 
 
+def has_investment_context(
+    article: Mapping[str, object],
+) -> bool:
+    combined_text = article_combined_text(
+        article
+    )
+
+    if not combined_text:
+        return False
+
+    return contains_any_phrase(
+        text=combined_text,
+        phrases=INVESTMENT_CONTEXT_TERMS,
+    )
+
+
+def has_low_value_corporate_context(
+    article: Mapping[str, object],
+) -> bool:
+    combined_text = article_combined_text(
+        article
+    )
+
+    if not combined_text:
+        return False
+
+    return contains_any_phrase(
+        text=combined_text,
+        phrases=LOW_VALUE_CORPORATE_CONTEXT_TERMS,
+    )
+
+
 def is_company_news_relevant(
     article: Mapping[str, object],
     aliases: Sequence[str],
@@ -425,6 +607,29 @@ def is_company_news_relevant(
         return True
 
     if has_non_business_context(
+        article
+    ):
+        return False
+
+    return True
+
+
+def is_investment_relevant_company_news(
+    article: Mapping[str, object],
+    aliases: Sequence[str],
+) -> bool:
+    if not is_company_news_relevant(
+        article=article,
+        aliases=aliases,
+    ):
+        return False
+
+    if has_investment_context(
+        article
+    ):
+        return True
+
+    if has_low_value_corporate_context(
         article
     ):
         return False

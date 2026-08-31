@@ -13,6 +13,9 @@ from src.news_relevance import (
     normalize_relevance_text,
     safe_text,
     text_contains_phrase,
+    has_investment_context,
+    has_low_value_corporate_context,
+    is_investment_relevant_company_news,
 )
 
 
@@ -408,5 +411,210 @@ def test_filter_rejects_sports_context_for_other_company() -> None:
         article=article,
         aliases=(
             "Örnek Holding",
+        ),
+    )
+def test_has_investment_context_for_financial_news() -> None:
+    article = create_article(
+        title=(
+            "ASELSAN 2026 ikinci çeyrek "
+            "bilançosunu açıkladı"
+        ),
+        summary=(
+            "Şirket cirosu ve net kârı arttı."
+        ),
+    )
+
+    assert has_investment_context(
+        article
+    )
+
+
+def test_has_investment_context_for_operational_news() -> None:
+    article = create_article(
+        title=(
+            "ASELSAN 60 milyon euroluk "
+            "yeni tesis yatırımı açıkladı"
+        ),
+        summary=(
+            "Şirket üretim kapasitesini "
+            "artıracak."
+        ),
+    )
+
+    assert has_investment_context(
+        article
+    )
+
+
+def test_has_low_value_corporate_context_for_event_news() -> None:
+    article = create_article(
+        title=(
+            "ASELSAN Çocuk Şenliği "
+            "Ordu'da düzenlendi"
+        ),
+        summary=(
+            "Etkinlik öğrencilerle buluştu."
+        ),
+    )
+
+    assert has_low_value_corporate_context(
+        article
+    )
+
+
+def test_has_low_value_corporate_context_for_visit_news() -> None:
+    article = create_article(
+        title=(
+            "Bakan ASELSAN Genel Müdürünü "
+            "kabul etti"
+        ),
+        summary=(
+            "Gerçekleştirilen ziyarette "
+            "görüş alışverişinde bulunuldu."
+        ),
+    )
+
+    assert has_low_value_corporate_context(
+        article
+    )
+
+
+def test_investment_relevant_company_news_keeps_financial_news() -> None:
+    article = create_article(
+        title=(
+            "ASELSAN'dan güçlü finansal "
+            "performans"
+        ),
+        summary=(
+            "Şirket cirosu 88,5 milyar "
+            "TL'ye yükseldi."
+        ),
+    )
+
+    assert is_investment_relevant_company_news(
+        article=article,
+        aliases=(
+            "ASELS",
+            "ASELSAN",
+        ),
+    )
+
+
+def test_investment_relevant_company_news_keeps_product_news() -> None:
+    article = create_article(
+        title=(
+            "ASELSAN yeni radar sistemini "
+            "tanıttı"
+        ),
+        summary=(
+            "Yeni sistem ihracat pazarları "
+            "için geliştirildi."
+        ),
+    )
+
+    assert is_investment_relevant_company_news(
+        article=article,
+        aliases=(
+            "ASELS",
+            "ASELSAN",
+        ),
+    )
+
+
+def test_investment_relevant_company_news_rejects_children_event() -> None:
+    article = create_article(
+        title=(
+            "ASELSAN Çocuk Şenliği "
+            "Nevşehir'de düzenlendi"
+        ),
+        summary=(
+            "Çocuklar bilim etkinliklerine "
+            "katıldı."
+        ),
+    )
+
+    assert not is_investment_relevant_company_news(
+        article=article,
+        aliases=(
+            "ASELS",
+            "ASELSAN",
+        ),
+    )
+
+
+def test_investment_relevant_company_news_rejects_school_news() -> None:
+    article = create_article(
+        title=(
+            "ASELSAN liseleri başarı "
+            "çıtasını yükseltiyor"
+        ),
+        summary=(
+            "Öğrencilerin eğitim başarıları "
+            "paylaşıldı."
+        ),
+    )
+
+    assert not is_investment_relevant_company_news(
+        article=article,
+        aliases=(
+            "ASELS",
+            "ASELSAN",
+        ),
+    )
+
+
+def test_investment_context_overrides_low_value_context() -> None:
+    article = create_article(
+        title=(
+            "ASELSAN festivalde yeni "
+            "savunma sistemini tanıttı"
+        ),
+        summary=(
+            "Yeni ürün ihracat hedefleri "
+            "için geliştirildi."
+        ),
+    )
+
+    assert has_low_value_corporate_context(
+        article
+    )
+
+    assert has_investment_context(
+        article
+    )
+
+    assert is_investment_relevant_company_news(
+        article=article,
+        aliases=(
+            "ASELS",
+            "ASELSAN",
+        ),
+    )
+
+
+def test_investment_relevant_company_news_keeps_uncertain_news() -> None:
+    article = create_article(
+        title=(
+            "ASELSAN hakkında yeni "
+            "açıklama yapıldı"
+        ),
+        summary=(
+            "Detaylar kamuoyuyla paylaşıldı."
+        ),
+    )
+
+    assert not has_investment_context(
+        article
+    )
+
+    assert not has_low_value_corporate_context(
+        article
+    )
+
+    assert is_investment_relevant_company_news(
+        article=article,
+        aliases=(
+            "ASELS",
+            "ASELSAN",
         ),
     )
