@@ -42,3 +42,79 @@ AI_BIST_Research/
 ├── tests/
 ├── .gitignore
 └── README.md
+
+## Kullanım
+
+### 1. Sanal ortamı etkinleştirme
+
+PowerShell:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+### 2. Paketleri kurma
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+### 3. Tam analiz işlemini çalıştırma
+
+`config/bist_watchlist.txt` dosyasındaki hisseleri analiz etmek için:
+
+```powershell
+python src/run_full_analysis.py --period 1y
+```
+
+Belirli hisseleri analiz etmek için:
+
+```powershell
+python src/run_full_analysis.py THYAO ASELS TUPRS --period 1y
+```
+
+### 4. İzleme listesi
+
+Analiz edilecek hisseler şu dosyada tutulur:
+
+```text
+config/bist_watchlist.txt
+```
+
+Her satıra bir BIST hisse kodu yazılabilir:
+
+```text
+THYAO
+ASELS
+TUPRS
+KCHOL
+SISE
+```
+
+### 5. Çıktılar
+
+Analiz sonucunda aşağıdaki dosyalar oluşturulur:
+
+```text
+reports/bist_batch_analysis.json
+reports/bist_batch_analysis.md
+reports/bist_candidates.json
+reports/bist_candidates.md
+```
+
+İndirilen fiyat verileri şu klasörde saklanır:
+
+```text
+data/prices/
+```
+
+### 6. Testler
+
+Tüm testleri çalıştırmak için:
+
+```powershell
+python -m pytest -q
+```
+
+> Sistem yalnızca araştırma ve teknik analiz amacıyla geliştirilmiştir. Üretilen sonuçlar yatırım tavsiyesi değildir.
