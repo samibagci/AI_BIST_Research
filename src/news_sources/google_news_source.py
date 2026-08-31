@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 import re
 import xml.etree.ElementTree as ElementTree
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from urllib.parse import quote_plus
 
 from src.download_bist_prices import (
@@ -53,6 +53,88 @@ def strip_html(
     return safe_text(decoded_value)
 
 
+def normalize_match_text(
+    value: object,
+) -> str:
+    cleaned_value = strip_html(value)
+
+    if cleaned_value is None:
+        return ""
+
+    turkish_normalized = (
+        cleaned_value.translate(
+            str.maketrans(
+                {
+                    "I": "ı",
+                    "İ": "i",
+                }
+            )
+        )
+    )
+
+    return turkish_normalized.casefold()
+
+
+def text_contains_alias(
+    text: str,
+    alias: str,
+) -> bool:
+    normalized_alias = (
+        normalize_match_text(alias)
+    )
+
+    if not normalized_alias:
+        return False
+
+    pattern = (
+        rf"(?<!\w)"
+        rf"{re.escape(normalized_alias)}"
+        rf"(?!\w)"
+    )
+
+    return (
+        re.search(
+            pattern,
+            text,
+            flags=re.IGNORECASE,
+        )
+        is not None
+    )
+
+
+def is_google_article_relevant(
+    article: Mapping[str, object],
+    aliases: Sequence[str],
+) -> bool:
+    title_text = normalize_match_text(
+        article.get("title")
+    )
+
+    summary_text = normalize_match_text(
+        article.get("summary")
+    )
+
+    combined_text = " ".join(
+        value
+        for value in [
+            title_text,
+            summary_text,
+        ]
+        if value
+    )
+
+    if not combined_text:
+        return False
+
+    return any(
+        text_contains_alias(
+            combined_text,
+            alias,
+        )
+        for alias in aliases
+    )
+
+
 def quote_search_term(
     value: str,
 ) -> str:
@@ -78,9 +160,11 @@ def build_google_news_query(
             "en az 1 gün olmalıdır."
         )
 
-    company_aliases = resolve_company_aliases(
-        symbol=symbol,
-        aliases=aliases,
+    company_aliases = (
+        resolve_company_aliases(
+            symbol=symbol,
+            aliases=aliases,
+        )
     )
 
     search_terms = [
@@ -116,7 +200,9 @@ def build_google_news_url(
         lookback_days=lookback_days,
     )
 
-    encoded_query = quote_plus(query)
+    encoded_query = quote_plus(
+        query
+    )
 
     return (
         f"{GOOGLE_NEWS_BASE_URL}"
@@ -156,8 +242,10 @@ def parse_google_news_feed(
     if not feed_data:
         return []
 
-    yahoo_symbol = normalize_bist_symbol(
-        symbol
+    yahoo_symbol = (
+        normalize_bist_symbol(
+            symbol
+        )
     )
 
     try:
@@ -220,8 +308,10 @@ def parse_google_news_feed(
             )
         )
 
-        article_url = get_entry_link(
-            element
+        article_url = (
+            get_entry_link(
+                element
+            )
         )
 
         article_id = safe_text(
@@ -265,7 +355,9 @@ def parse_google_news_feed(
                 "relatedTickers": [
                     yahoo_symbol,
                 ],
-                "source_name": SOURCE_NAME,
+                "source_name": (
+                    SOURCE_NAME
+                ),
                 "source_type": (
                     "google_news"
                 ),
@@ -273,6 +365,30 @@ def parse_google_news_feed(
         )
 
     return articles
+
+
+def filter_relevant_articles(
+    symbol: str,
+    articles: Sequence[
+        dict[str, object]
+    ],
+    aliases: Sequence[str] | None = None,
+) -> list[dict[str, object]]:
+    company_aliases = (
+        resolve_company_aliases(
+            symbol=symbol,
+            aliases=aliases,
+        )
+    )
+
+    return [
+        article
+        for article in articles
+        if is_google_article_relevant(
+            article=article,
+            aliases=company_aliases,
+        )
+    ]
 
 
 def fetch_google_news(
@@ -299,12 +415,18 @@ def fetch_google_news(
             "1 saniye olmalıdır."
         )
 
-    normalize_bist_symbol(symbol)
+    normalize_bist_symbol(
+        symbol
+    )
 
-    feed_url = build_google_news_url(
-        symbol=symbol,
-        aliases=aliases,
-        lookback_days=lookback_days,
+    feed_url = (
+        build_google_news_url(
+            symbol=symbol,
+            aliases=aliases,
+            lookback_days=(
+                lookback_days
+            ),
+        )
     )
 
     feed_data = download_rss_feed(
@@ -312,14 +434,24 @@ def fetch_google_news(
         timeout=timeout,
     )
 
-    articles = parse_google_news_feed(
-        feed_data=feed_data,
-        symbol=symbol,
+    articles = (
+        parse_google_news_feed(
+            feed_data=feed_data,
+            symbol=symbol,
+        )
+    )
+
+    relevant_articles = (
+        filter_relevant_articles(
+            symbol=symbol,
+            articles=articles,
+            aliases=aliases,
+        )
     )
 
     unique_articles = (
         deduplicate_articles(
-            articles
+            relevant_articles
         )
     )
 
