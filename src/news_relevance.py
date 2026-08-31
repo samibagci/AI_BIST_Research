@@ -8,32 +8,44 @@ from src.company_registry import (
 )
 
 
-BUSINESS_CONTEXT_TERMS = (
-    "şirket",
-    "hisse",
-    "borsa",
-    "bist",
-    "yatırım",
-    "yatırımcı",
-    "finans",
-    "finansal",
-    "gelir",
+STRONG_INVESTMENT_CONTEXT_TERMS = (
+    # Finansal sonuçlar
+    "bilanço",
+    "bilanco",
+    "finansal sonuç",
+    "finansal sonuc",
+    "faaliyet raporu",
     "ciro",
+    "hasılat",
+    "hasilat",
+    "gelir",
     "kâr",
     "kar",
     "zarar",
+    "favök",
+    "favok",
+    "ebitda",
     "temettü",
     "temettu",
-    "kap",
-    "sermaye",
-    "ortaklık",
-    "ortaklik",
-    "satış",
-    "satis",
-    "üretim",
-    "uretim",
-    "ihracat",
-    "ithalat",
+
+    # Sermaye / piyasa
+    "sermaye artırımı",
+    "sermaye artirimi",
+    "bedelsiz",
+    "bedelli",
+    "geri alım",
+    "geri alim",
+    "halka arz",
+    "hedef fiyat",
+    "model portföy",
+    "model portfoy",
+    "al tavsiyesi",
+    "sat tavsiyesi",
+    "kredi notu",
+
+    # Operasyonel gelişmeler
+    "yatırım",
+    "yatirim",
     "sözleşme",
     "sozlesme",
     "anlaşma",
@@ -41,22 +53,110 @@ BUSINESS_CONTEXT_TERMS = (
     "ihale",
     "sipariş",
     "siparis",
-    "fabrika",
+    "ihracat",
+    "satın alma",
+    "satin alma",
+    "birleşme",
+    "birlesme",
+    "devralma",
+
+    # Resmî bildirim
+    "kap",
+    "özel durum açıklaması",
+    "ozel durum aciklamasi",
+)
+
+
+MODERATE_INVESTMENT_CONTEXT_TERMS = (
+    "üretim",
+    "uretim",
+    "kapasite",
     "tesis",
-    "faaliyet",
-    "bilanço",
-    "bilanco",
+    "fabrika",
+    "satış",
+    "satis",
+    "tedarik",
+    "teslimat",
+    "ithalat",
+    "müşteri",
+    "musteri",
+    "pazar",
+    "operasyon",
     "finansman",
     "borç",
     "borc",
     "kredi",
-    "pay",
-    "halka arz",
-    "geri alım",
-    "geri alim",
-    "sponsorluk",
+    "marj",
+    "nakit",
+    "iştirak",
+    "istirak",
+    "ortaklık",
+    "ortaklik",
+    "atama",
+    "istifa",
+    "lisans",
+    "ruhsat",
+    "teşvik",
+    "tesvik",
+    "dava",
+    "ceza",
     "iş birliği",
     "is birligi",
+    "sponsorluk",
+    "teknik analiz",
+    "temel analiz",
+    "açığa satış",
+    "aciga satis",
+    "takas oranı",
+    "takas orani",
+)
+
+
+WEAK_INVESTMENT_CONTEXT_TERMS = (
+    "ürün",
+    "urun",
+    "sistem",
+    "teknoloji",
+    "platform",
+    "araç",
+    "arac",
+    "entegrasyon",
+    "geliştirdi",
+    "gelistirdi",
+    "geliştiriyor",
+    "gelistiriyor",
+    "tanıttı",
+    "tanitti",
+    "proje",
+)
+
+
+LOW_VALUE_CORPORATE_CONTEXT_TERMS = (
+    "çocuk şenliği",
+    "cocuk senligi",
+    "şenlik",
+    "senlik",
+    "öğrenci",
+    "ogrenci",
+    "lise",
+    "okul",
+    "kariyer günü",
+    "kariyer gunu",
+    "sosyal sorumluluk",
+    "ziyaret etti",
+    "ziyaret",
+    "kabul etti",
+    "ağırladı",
+    "agirladi",
+    "kutlama",
+    "tören",
+    "toren",
+    "festival",
+    "etkinlik",
+    "konferans",
+    "söyleşi",
+    "soylesi",
+    "teknofest",
 )
 
 
@@ -92,155 +192,41 @@ NON_BUSINESS_CONTEXT_TERMS = (
 )
 
 
+BUSINESS_CONTEXT_TERMS = (
+    STRONG_INVESTMENT_CONTEXT_TERMS
+    + MODERATE_INVESTMENT_CONTEXT_TERMS
+    + WEAK_INVESTMENT_CONTEXT_TERMS
+    + (
+        "şirket",
+        "sirket",
+        "hisse",
+        "borsa",
+        "bist",
+        "yatırımcı",
+        "yatirimci",
+        "finans",
+        "finansal",
+        "faaliyet",
+        "pay",
+    )
+)
+
+
 INVESTMENT_CONTEXT_TERMS = (
-    # Finansal sonuçlar
-    "bilanço",
-    "bilanco",
-    "finansal sonuç",
-    "finansal sonuc",
-    "faaliyet raporu",
-    "ciro",
-    "hasılat",
-    "hasilat",
-    "gelir",
-    "kâr",
-    "kar",
-    "zarar",
-    "favök",
-    "favok",
-    "ebitda",
-    "marj",
-    "nakit",
-    "borç",
-    "borc",
-    "finansman",
-    "kredi",
-    "vergi",
-
-    # Sermaye ve hisse
-    "hisse",
-    "borsa",
-    "bist",
-    "yatırımcı",
-    "yatirimci",
-    "temettü",
-    "temettu",
-    "sermaye",
-    "bedelsiz",
-    "bedelli",
-    "geri alım",
-    "geri alim",
-    "halka arz",
-    "hedef fiyat",
-    "model portföy",
-    "model portfoy",
-    "al tavsiyesi",
-    "sat tavsiyesi",
-    "teknik analiz",
-    "temel analiz",
-    "açığa satış",
-    "aciga satis",
-    "takas oranı",
-    "takas orani",
-
-    # Operasyon ve büyüme
-    "yatırım",
-    "yatirim",
-    "üretim",
-    "uretim",
-    "kapasite",
-    "tesis",
-    "fabrika",
-    "sipariş",
-    "siparis",
-    "sözleşme",
-    "sozlesme",
-    "anlaşma",
-    "anlasma",
-    "ihale",
-    "tedarik",
-    "teslimat",
-    "ihracat",
-    "ithalat",
-    "satış",
-    "satis",
-    "müşteri",
-    "musteri",
-    "pazar",
-    "operasyon",
-
-    # Ürün ve teknoloji
-    "ürün",
-    "urun",
-    "sistem",
-    "teknoloji",
-    "platform",
-    "araç",
-    "arac",
-    "entegrasyon",
-    "geliştirdi",
-    "gelistirdi",
-    "geliştiriyor",
-    "gelistiriyor",
-    "tanıttı",
-    "tanitti",
-
-    # Şirket yapısı
-    "satın alma",
-    "satin alma",
-    "birleşme",
-    "birlesme",
-    "devralma",
-    "iştirak",
-    "istirak",
-    "ortaklık",
-    "ortaklik",
-    "atama",
-    "istifa",
-
-    # Resmî / düzenleyici
-    "kap",
-    "özel durum açıklaması",
-    "ozel durum aciklamasi",
-    "kredi notu",
-    "lisans",
-    "ruhsat",
-    "teşvik",
-    "tesvik",
-    "dava",
-    "ceza",
-
-    # Stratejik iş
-    "iş birliği",
-    "is birligi",
-    "sponsorluk",
+    STRONG_INVESTMENT_CONTEXT_TERMS
+    + MODERATE_INVESTMENT_CONTEXT_TERMS
+    + WEAK_INVESTMENT_CONTEXT_TERMS
 )
 
 
-LOW_VALUE_CORPORATE_CONTEXT_TERMS = (
-    "çocuk şenliği",
-    "cocuk senligi",
-    "şenlik",
-    "senlik",
-    "öğrenci",
-    "ogrenci",
-    "lise",
-    "okul",
-    "kariyer günü",
-    "kariyer gunu",
-    "sosyal sorumluluk",
-    "ziyaret etti",
-    "ziyaret",
-    "kabul etti",
-    "ağırladı",
-    "agirladi",
-    "kutlama",
-    "tören",
-    "toren",
-    "festival",
-    "söyleşi",
-    "soylesi",
-)
+STRONG_INVESTMENT_WEIGHT = 4
+MODERATE_INVESTMENT_WEIGHT = 2
+WEAK_INVESTMENT_WEIGHT = 1
+
+LOW_VALUE_CORPORATE_WEIGHT = -3
+NON_BUSINESS_CONTEXT_WEIGHT = -4
+
+MIN_INVESTMENT_RELEVANCE_SCORE = 0
 
 
 TURKISH_WORD_SUFFIXES = (
@@ -385,9 +371,16 @@ def article_combined_text(
 def exact_phrase_pattern(
     normalized_phrase: str,
 ) -> str:
+    escaped_phrase = re.escape(
+        normalized_phrase
+    ).replace(
+        r"\ ",
+        r"\s+",
+    )
+
     return (
         rf"(?<!\w)"
-        rf"{re.escape(normalized_phrase)}"
+        rf"{escaped_phrase}"
         rf"(?!\w)"
     )
 
@@ -398,6 +391,32 @@ def inflected_word_pattern(
     return (
         rf"(?<!\w)"
         rf"{re.escape(normalized_word)}"
+        rf"(?:{TURKISH_SUFFIX_PATTERN})+"
+        rf"(?!\w)"
+    )
+
+
+def inflected_phrase_pattern(
+    normalized_phrase: str,
+) -> str | None:
+    words = normalized_phrase.split()
+
+    if len(words) < 2:
+        return None
+
+    prefix_words = words[:-1]
+    final_word = words[-1]
+
+    escaped_prefix = r"\s+".join(
+        re.escape(word)
+        for word in prefix_words
+    )
+
+    return (
+        rf"(?<!\w)"
+        rf"{escaped_prefix}"
+        rf"\s+"
+        rf"{re.escape(final_word)}"
         rf"(?:{TURKISH_SUFFIX_PATTERN})+"
         rf"(?!\w)"
     )
@@ -433,7 +452,23 @@ def text_contains_phrase(
         return True
 
     if " " in normalized_phrase:
-        return False
+        inflected_pattern = (
+            inflected_phrase_pattern(
+                normalized_phrase
+            )
+        )
+
+        if inflected_pattern is None:
+            return False
+
+        return (
+            re.search(
+                inflected_pattern,
+                text,
+                flags=re.IGNORECASE,
+            )
+            is not None
+        )
 
     inflected_pattern = (
         inflected_word_pattern(
@@ -464,9 +499,9 @@ def contains_any_phrase(
     )
 
 
-def matching_aliases(
+def matching_phrases(
     article: Mapping[str, object],
-    aliases: Sequence[str],
+    phrases: Sequence[str],
 ) -> tuple[str, ...]:
     combined_text = article_combined_text(
         article
@@ -478,41 +513,51 @@ def matching_aliases(
     matches: list[str] = []
     seen_matches: set[str] = set()
 
-    for alias in aliases:
-        cleaned_alias = safe_text(
-            alias
+    for phrase in phrases:
+        cleaned_phrase = safe_text(
+            phrase
         )
 
-        if cleaned_alias is None:
+        if cleaned_phrase is None:
             continue
 
-        normalized_alias = (
+        normalized_phrase = (
             normalize_relevance_text(
-                cleaned_alias
+                cleaned_phrase
             )
         )
 
-        if not normalized_alias:
+        if not normalized_phrase:
             continue
 
-        if normalized_alias in seen_matches:
+        if normalized_phrase in seen_matches:
             continue
 
         if not text_contains_phrase(
             combined_text,
-            cleaned_alias,
+            cleaned_phrase,
         ):
             continue
 
         seen_matches.add(
-            normalized_alias
+            normalized_phrase
         )
 
         matches.append(
-            cleaned_alias
+            cleaned_phrase
         )
 
     return tuple(matches)
+
+
+def matching_aliases(
+    article: Mapping[str, object],
+    aliases: Sequence[str],
+) -> tuple[str, ...]:
+    return matching_phrases(
+        article=article,
+        phrases=aliases,
+    )
 
 
 def has_company_reference(
@@ -530,65 +575,175 @@ def has_company_reference(
 def has_business_context(
     article: Mapping[str, object],
 ) -> bool:
-    combined_text = article_combined_text(
-        article
-    )
-
-    if not combined_text:
-        return False
-
-    return contains_any_phrase(
-        text=combined_text,
-        phrases=BUSINESS_CONTEXT_TERMS,
+    return bool(
+        matching_phrases(
+            article=article,
+            phrases=BUSINESS_CONTEXT_TERMS,
+        )
     )
 
 
 def has_non_business_context(
     article: Mapping[str, object],
 ) -> bool:
-    combined_text = article_combined_text(
-        article
-    )
-
-    if not combined_text:
-        return False
-
-    return contains_any_phrase(
-        text=combined_text,
-        phrases=NON_BUSINESS_CONTEXT_TERMS,
+    return bool(
+        matching_phrases(
+            article=article,
+            phrases=NON_BUSINESS_CONTEXT_TERMS,
+        )
     )
 
 
 def has_investment_context(
     article: Mapping[str, object],
 ) -> bool:
-    combined_text = article_combined_text(
-        article
-    )
-
-    if not combined_text:
-        return False
-
-    return contains_any_phrase(
-        text=combined_text,
-        phrases=INVESTMENT_CONTEXT_TERMS,
+    return bool(
+        matching_phrases(
+            article=article,
+            phrases=INVESTMENT_CONTEXT_TERMS,
+        )
     )
 
 
 def has_low_value_corporate_context(
     article: Mapping[str, object],
 ) -> bool:
-    combined_text = article_combined_text(
+    return bool(
+        matching_phrases(
+            article=article,
+            phrases=LOW_VALUE_CORPORATE_CONTEXT_TERMS,
+        )
+    )
+
+
+def calculate_investment_relevance_score(
+    article: Mapping[str, object],
+) -> int:
+    strong_matches = matching_phrases(
+        article=article,
+        phrases=(
+            STRONG_INVESTMENT_CONTEXT_TERMS
+        ),
+    )
+
+    moderate_matches = matching_phrases(
+        article=article,
+        phrases=(
+            MODERATE_INVESTMENT_CONTEXT_TERMS
+        ),
+    )
+
+    weak_matches = matching_phrases(
+        article=article,
+        phrases=(
+            WEAK_INVESTMENT_CONTEXT_TERMS
+        ),
+    )
+
+    low_value_matches = matching_phrases(
+        article=article,
+        phrases=(
+            LOW_VALUE_CORPORATE_CONTEXT_TERMS
+        ),
+    )
+
+    non_business_matches = matching_phrases(
+        article=article,
+        phrases=(
+            NON_BUSINESS_CONTEXT_TERMS
+        ),
+    )
+
+    score = 0
+
+    score += (
+        len(strong_matches)
+        * STRONG_INVESTMENT_WEIGHT
+    )
+
+    score += (
+        len(moderate_matches)
+        * MODERATE_INVESTMENT_WEIGHT
+    )
+
+    score += (
+        len(weak_matches)
+        * WEAK_INVESTMENT_WEIGHT
+    )
+
+    score += (
+        len(low_value_matches)
+        * LOW_VALUE_CORPORATE_WEIGHT
+    )
+
+    score += (
+        len(non_business_matches)
+        * NON_BUSINESS_CONTEXT_WEIGHT
+    )
+
+    return score
+
+
+def investment_relevance_breakdown(
+    article: Mapping[str, object],
+) -> dict[str, object]:
+    strong_matches = matching_phrases(
+        article=article,
+        phrases=(
+            STRONG_INVESTMENT_CONTEXT_TERMS
+        ),
+    )
+
+    moderate_matches = matching_phrases(
+        article=article,
+        phrases=(
+            MODERATE_INVESTMENT_CONTEXT_TERMS
+        ),
+    )
+
+    weak_matches = matching_phrases(
+        article=article,
+        phrases=(
+            WEAK_INVESTMENT_CONTEXT_TERMS
+        ),
+    )
+
+    low_value_matches = matching_phrases(
+        article=article,
+        phrases=(
+            LOW_VALUE_CORPORATE_CONTEXT_TERMS
+        ),
+    )
+
+    non_business_matches = matching_phrases(
+        article=article,
+        phrases=(
+            NON_BUSINESS_CONTEXT_TERMS
+        ),
+    )
+
+    score = calculate_investment_relevance_score(
         article
     )
 
-    if not combined_text:
-        return False
-
-    return contains_any_phrase(
-        text=combined_text,
-        phrases=LOW_VALUE_CORPORATE_CONTEXT_TERMS,
-    )
+    return {
+        "score": score,
+        "strong_matches": list(
+            strong_matches
+        ),
+        "moderate_matches": list(
+            moderate_matches
+        ),
+        "weak_matches": list(
+            weak_matches
+        ),
+        "low_value_matches": list(
+            low_value_matches
+        ),
+        "non_business_matches": list(
+            non_business_matches
+        ),
+    }
 
 
 def is_company_news_relevant(
@@ -618,20 +773,19 @@ def is_investment_relevant_company_news(
     article: Mapping[str, object],
     aliases: Sequence[str],
 ) -> bool:
-    if not is_company_news_relevant(
+    if not has_company_reference(
         article=article,
         aliases=aliases,
     ):
         return False
 
-    if has_investment_context(
-        article
-    ):
-        return True
+    relevance_score = (
+        calculate_investment_relevance_score(
+            article
+        )
+    )
 
-    if has_low_value_corporate_context(
-        article
-    ):
-        return False
-
-    return True
+    return (
+        relevance_score
+        >= MIN_INVESTMENT_RELEVANCE_SCORE
+    )
