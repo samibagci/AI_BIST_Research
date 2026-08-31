@@ -488,7 +488,7 @@ def test_collect_multi_source_news_combines_sources(
 
     monkeypatch.setattr(
         module,
-        "fetch_yahoo_news",
+        "fetch_relevant_yahoo_news",
         lambda symbol, count: [
             yahoo_article,
         ],
@@ -545,7 +545,7 @@ def test_collect_multi_source_news_sorts_newest_first(
 
     monkeypatch.setattr(
         module,
-        "fetch_yahoo_news",
+        "fetch_relevant_yahoo_news",
         lambda symbol, count: [
             older_yahoo_article,
         ],
@@ -588,7 +588,7 @@ def test_collect_multi_source_news_deduplicates_sources(
 
     monkeypatch.setattr(
         module,
-        "fetch_yahoo_news",
+        "fetch_relevant_yahoo_news",
         lambda symbol, count: [
             yahoo_article,
         ],
@@ -649,7 +649,7 @@ def test_collect_multi_source_news_respects_count(
 
     monkeypatch.setattr(
         module,
-        "fetch_yahoo_news",
+        "fetch_relevant_yahoo_news",
         lambda symbol, count: yahoo_articles,
     )
 
@@ -685,7 +685,7 @@ def test_collect_multi_source_news_continues_after_failure(
 
     monkeypatch.setattr(
         module,
-        "fetch_yahoo_news",
+        "fetch_relevant_yahoo_news",
         failing_yahoo,
     )
 
@@ -732,7 +732,7 @@ def test_collect_multi_source_news_only_yahoo(
 
     monkeypatch.setattr(
         module,
-        "fetch_yahoo_news",
+        "fetch_relevant_yahoo_news",
         lambda symbol, count: [
             yahoo_article,
         ],
@@ -800,7 +800,7 @@ def test_collect_multi_source_news_passes_custom_counts(
 
     monkeypatch.setattr(
         module,
-        "fetch_yahoo_news",
+        "fetch_relevant_yahoo_news",
         fake_yahoo,
     )
 

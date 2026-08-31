@@ -22,7 +22,7 @@ from src.news_sources.yahoo_source import (
     SOURCE_NAME as YAHOO_SOURCE_NAME,
 )
 from src.news_sources.yahoo_source import (
-    fetch_yahoo_news,
+    fetch_relevant_yahoo_news,
 )
 
 
@@ -538,7 +538,7 @@ def collect_multi_source_news(
                 ),
                 source_type="yahoo",
                 fetch_function=lambda: (
-                    fetch_yahoo_news(
+                    fetch_relevant_yahoo_news(
                         symbol=symbol,
                         count=(
                             resolved_yahoo_count
