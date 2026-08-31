@@ -660,11 +660,17 @@ def test_analyze_news_articles_rejects_invalid_lookback() -> None:
 def test_run_news_analysis(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    current_time = datetime.now(
+        timezone.utc
+    ).isoformat()
+
     monkeypatch.setattr(
         module,
         "fetch_company_news",
         lambda symbol, count: [
-            create_raw_article(),
+            create_raw_article(
+                published_at=current_time,
+            ),
         ],
     )
 
