@@ -9,7 +9,9 @@ from email.utils import parsedate_to_datetime
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
-
+from src.news_relevance import (
+    is_company_news_relevant,
+)
 from src.company_registry import (
     get_company_aliases,
     normalize_company_text,
@@ -587,32 +589,10 @@ def is_article_relevant(
     article: Mapping[str, object],
     aliases: Sequence[str],
 ) -> bool:
-    combined_text = " ".join(
-        [
-            normalize_match_text(
-                article.get(
-                    "title"
-                )
-            ),
-            normalize_match_text(
-                article.get(
-                    "summary"
-                )
-            ),
-        ]
+    return is_company_news_relevant(
+        article=article,
+        aliases=aliases,
     )
-
-    if not combined_text.strip():
-        return False
-
-    return any(
-        text_contains_alias(
-            combined_text,
-            alias,
-        )
-        for alias in aliases
-    )
-
 
 def normalize_article_url(
     value: object,
