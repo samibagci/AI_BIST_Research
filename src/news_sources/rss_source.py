@@ -6,12 +6,17 @@ import xml.etree.ElementTree as ElementTree
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
-from src.download_bist_prices import normalize_bist_symbol
+from src.company_registry import (
+    get_company_aliases,
+    normalize_company_text,
+)
+from src.download_bist_prices import (
+    normalize_bist_symbol,
+)
 
 
 SOURCE_NAME = "Türkçe Finans RSS"
@@ -38,35 +43,6 @@ DEFAULT_RSS_FEEDS: dict[str, str] = {
     "Anadolu Ajansı": (
         "https://www.aa.com.tr/rss/"
         "ajansguncel.xml"
-    ),
-}
-
-DEFAULT_COMPANY_ALIASES: dict[
-    str,
-    tuple[str, ...],
-] = {
-    "THYAO": (
-        "THYAO",
-        "Türk Hava Yolları",
-        "Turkish Airlines",
-    ),
-    "ASELS": (
-        "ASELS",
-        "ASELSAN",
-    ),
-    "TUPRS": (
-        "TUPRS",
-        "Tüpraş",
-        "Türkiye Petrol Rafinerileri",
-    ),
-    "KCHOL": (
-        "KCHOL",
-        "Koç Holding",
-    ),
-    "SISE": (
-        "SISE",
-        "Şişecam",
-        "Türkiye Şişe ve Cam Fabrikaları",
     ),
 }
 
@@ -105,17 +81,25 @@ def strip_html(
         without_tags
     )
 
-    return safe_text(decoded_value)
+    return safe_text(
+        decoded_value
+    )
 
 
 def local_name(
     tag: str,
 ) -> str:
     if "}" in tag:
-        return tag.rsplit("}", 1)[-1]
+        return tag.rsplit(
+            "}",
+            1,
+        )[-1]
 
     if ":" in tag:
-        return tag.rsplit(":", 1)[-1]
+        return tag.rsplit(
+            ":",
+            1,
+        )[-1]
 
     return tag
 
@@ -134,7 +118,10 @@ def get_child_text(
             child.tag
         ).casefold()
 
-        if child_name not in expected_names:
+        if (
+            child_name
+            not in expected_names
+        ):
             continue
 
         cleaned_value = safe_text(
@@ -152,13 +139,17 @@ def get_entry_link(
 ) -> str | None:
     for child in element:
         if (
-            local_name(child.tag).casefold()
+            local_name(
+                child.tag
+            ).casefold()
             != "link"
         ):
             continue
 
         href = safe_text(
-            child.attrib.get("href")
+            child.attrib.get(
+                "href"
+            )
         )
 
         if href is not None:
@@ -177,7 +168,9 @@ def get_entry_link(
 def parse_feed_datetime(
     value: object,
 ) -> datetime | None:
-    cleaned_value = safe_text(value)
+    cleaned_value = safe_text(
+        value
+    )
 
     if cleaned_value is None:
         return None
@@ -232,7 +225,9 @@ def parse_feed_datetime(
 def validate_feed_url(
     feed_url: str,
 ) -> str:
-    cleaned_url = safe_text(feed_url)
+    cleaned_url = safe_text(
+        feed_url
+    )
 
     if cleaned_url is None:
         raise ValueError(
@@ -277,7 +272,9 @@ def download_rss_feed(
     request = Request(
         validated_url,
         headers={
-            "User-Agent": DEFAULT_USER_AGENT,
+            "User-Agent": (
+                DEFAULT_USER_AGENT
+            ),
             "Accept": (
                 "application/rss+xml, "
                 "application/atom+xml, "
@@ -292,8 +289,10 @@ def download_rss_feed(
         request,
         timeout=timeout,
     ) as response:
-        content_length = response.headers.get(
-            "Content-Length"
+        content_length = (
+            response.headers.get(
+                "Content-Length"
+            )
         )
 
         if content_length is not None:
@@ -314,7 +313,8 @@ def download_rss_feed(
                 )
 
         feed_data = response.read(
-            MAX_FEED_SIZE_BYTES + 1
+            MAX_FEED_SIZE_BYTES
+            + 1
         )
 
     if (
@@ -339,8 +339,8 @@ def parse_rss_feed(
     source_name: str,
     yahoo_symbol: str,
 ) -> list[dict[str, object]]:
-    cleaned_source_name = (
-        safe_text(source_name)
+    cleaned_source_name = safe_text(
+        source_name
     )
 
     if cleaned_source_name is None:
@@ -399,14 +399,16 @@ def parse_rss_feed(
             )
         )
 
-        published_text = get_child_text(
-            element,
-            (
-                "pubDate",
-                "published",
-                "updated",
-                "date",
-            ),
+        published_text = (
+            get_child_text(
+                element,
+                (
+                    "pubDate",
+                    "published",
+                    "updated",
+                    "date",
+                ),
+            )
         )
 
         published_datetime = (
@@ -425,8 +427,10 @@ def parse_rss_feed(
             )
         )
 
-        article_url = get_entry_link(
-            element
+        article_url = (
+            get_entry_link(
+                element
+            )
         )
 
         if article_id is None:
@@ -463,20 +467,26 @@ def parse_rss_feed(
 def normalize_match_text(
     value: object,
 ) -> str:
-    cleaned_value = strip_html(value)
+    cleaned_value = strip_html(
+        value
+    )
 
     if cleaned_value is None:
         return ""
 
-    return cleaned_value.casefold()
+    return normalize_company_text(
+        cleaned_value
+    )
 
 
 def text_contains_alias(
     text: str,
     alias: str,
 ) -> bool:
-    normalized_alias = normalize_match_text(
-        alias
+    normalized_alias = (
+        normalize_company_text(
+            alias
+        )
     )
 
     if not normalized_alias:
@@ -502,51 +512,75 @@ def resolve_company_aliases(
     symbol: str,
     aliases: Sequence[str] | None = None,
 ) -> tuple[str, ...]:
-    yahoo_symbol = normalize_bist_symbol(
-        symbol
-    )
-    base_symbol = yahoo_symbol.removesuffix(
-        ".IS"
-    )
-
-    alias_values: list[str] = [
-        base_symbol,
-    ]
-
-    alias_values.extend(
-        DEFAULT_COMPANY_ALIASES.get(
-            base_symbol,
-            (),
+    yahoo_symbol = (
+        normalize_bist_symbol(
+            symbol
         )
     )
 
+    base_symbol = (
+        yahoo_symbol.removesuffix(
+            ".IS"
+        )
+    )
+
+    registry_aliases = (
+        get_company_aliases(
+            base_symbol
+        )
+    )
+
+    alias_values: list[str] = list(
+        registry_aliases
+    )
+
     if aliases is not None:
-        alias_values.extend(aliases)
+        alias_values.extend(
+            aliases
+        )
 
     unique_aliases: list[str] = []
     seen_aliases: set[str] = set()
 
     for alias in alias_values:
-        cleaned_alias = safe_text(alias)
+        cleaned_alias = safe_text(
+            alias
+        )
 
         if cleaned_alias is None:
             continue
 
         normalized_alias = (
-            cleaned_alias.casefold()
+            normalize_company_text(
+                cleaned_alias
+            )
         )
 
-        if normalized_alias in seen_aliases:
+        if not normalized_alias:
+            continue
+
+        if (
+            normalized_alias
+            in seen_aliases
+        ):
             continue
 
         seen_aliases.add(
             normalized_alias
         )
+
         unique_aliases.append(
             cleaned_alias
         )
 
-    return tuple(unique_aliases)
+    if not unique_aliases:
+        unique_aliases.append(
+            base_symbol
+        )
+
+    return tuple(
+        unique_aliases
+    )
 
 
 def is_article_relevant(
@@ -556,13 +590,20 @@ def is_article_relevant(
     combined_text = " ".join(
         [
             normalize_match_text(
-                article.get("title")
+                article.get(
+                    "title"
+                )
             ),
             normalize_match_text(
-                article.get("summary")
+                article.get(
+                    "summary"
+                )
             ),
         ]
     )
+
+    if not combined_text.strip():
+        return False
 
     return any(
         text_contains_alias(
@@ -576,7 +617,9 @@ def is_article_relevant(
 def normalize_article_url(
     value: object,
 ) -> str | None:
-    cleaned_url = safe_text(value)
+    cleaned_url = safe_text(
+        value
+    )
 
     if cleaned_url is None:
         return None
@@ -589,7 +632,9 @@ def normalize_article_url(
         (
             parsed_url.scheme.casefold(),
             parsed_url.netloc.casefold(),
-            parsed_url.path.rstrip("/"),
+            parsed_url.path.rstrip(
+                "/"
+            ),
             parsed_url.query,
             "",
         )
@@ -601,19 +646,31 @@ def normalize_article_url(
 def article_deduplication_key(
     article: Mapping[str, object],
 ) -> str | None:
-    normalized_url = normalize_article_url(
-        article.get("link")
+    normalized_url = (
+        normalize_article_url(
+            article.get(
+                "link"
+            )
+        )
     )
 
     if normalized_url:
-        return f"url:{normalized_url}"
+        return (
+            f"url:{normalized_url}"
+        )
 
-    normalized_title = normalize_match_text(
-        article.get("title")
+    normalized_title = (
+        normalize_match_text(
+            article.get(
+                "title"
+            )
+        )
     )
 
     if normalized_title:
-        return f"title:{normalized_title}"
+        return (
+            f"title:{normalized_title}"
+        )
 
     return None
 
@@ -636,15 +693,22 @@ def deduplicate_articles(
             )
         )
 
-        if deduplication_key is None:
+        if (
+            deduplication_key
+            is None
+        ):
             continue
 
-        if deduplication_key in seen_keys:
+        if (
+            deduplication_key
+            in seen_keys
+        ):
             continue
 
         seen_keys.add(
             deduplication_key
         )
+
         unique_articles.append(
             article
         )
@@ -655,8 +719,12 @@ def deduplicate_articles(
 def article_sort_datetime(
     article: Mapping[str, object],
 ) -> datetime:
-    parsed_datetime = parse_feed_datetime(
-        article.get("publishedAt")
+    parsed_datetime = (
+        parse_feed_datetime(
+            article.get(
+                "publishedAt"
+            )
+        )
     )
 
     if parsed_datetime is not None:
@@ -673,8 +741,10 @@ def fetch_single_rss_source(
     symbol: str,
     timeout: int = DEFAULT_REQUEST_TIMEOUT,
 ) -> list[dict[str, object]]:
-    yahoo_symbol = normalize_bist_symbol(
-        symbol
+    yahoo_symbol = (
+        normalize_bist_symbol(
+            symbol
+        )
     )
 
     feed_data = download_rss_feed(
@@ -692,8 +762,13 @@ def fetch_single_rss_source(
 def fetch_rss_news(
     symbol: str,
     count: int = DEFAULT_NEWS_COUNT,
-    feed_urls: Mapping[str, str] | None = None,
-    aliases: Sequence[str] | None = None,
+    feed_urls: Mapping[
+        str,
+        str,
+    ] | None = None,
+    aliases: Sequence[
+        str
+    ] | None = None,
     timeout: int = DEFAULT_REQUEST_TIMEOUT,
 ) -> list[dict[str, object]]:
     if count < 1:
@@ -707,12 +782,16 @@ def fetch_rss_news(
             "1 saniye olmalıdır."
         )
 
-    normalize_bist_symbol(symbol)
+    normalize_bist_symbol(
+        symbol
+    )
 
     selected_feeds = (
         dict(feed_urls)
         if feed_urls is not None
-        else dict(DEFAULT_RSS_FEEDS)
+        else dict(
+            DEFAULT_RSS_FEEDS
+        )
     )
 
     if not selected_feeds:
@@ -736,8 +815,12 @@ def fetch_rss_news(
         try:
             source_articles = (
                 fetch_single_rss_source(
-                    source_name=source_name,
-                    feed_url=feed_url,
+                    source_name=(
+                        source_name
+                    ),
+                    feed_url=(
+                        feed_url
+                    ),
                     symbol=symbol,
                     timeout=timeout,
                 )
@@ -754,7 +837,8 @@ def fetch_rss_news(
 
         relevant_articles = [
             article
-            for article in source_articles
+            for article
+            in source_articles
             if is_article_relevant(
                 article,
                 company_aliases,

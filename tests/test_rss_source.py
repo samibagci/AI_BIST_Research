@@ -69,6 +69,44 @@ ATOM_DATA = """<?xml version="1.0" encoding="UTF-8"?>
 """.encode("utf-8")
 
 
+@pytest.fixture(autouse=True)
+def mock_company_registry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_get_company_aliases(
+        symbol: str,
+    ) -> tuple[str, ...]:
+        if symbol == "THYAO":
+            return (
+                "THYAO",
+                "Türk Hava Yolları",
+                "Turkish Airlines",
+            )
+
+        if symbol == "TUPRS":
+            return (
+                "TUPRS",
+                "Tüpraş",
+                "Türkiye Petrol Rafinerileri",
+            )
+
+        if symbol == "ASELS":
+            return (
+                "ASELS",
+                "ASELSAN",
+            )
+
+        return (
+            symbol,
+        )
+
+    monkeypatch.setattr(
+        module,
+        "get_company_aliases",
+        fake_get_company_aliases,
+    )
+
+
 def create_article(
     title: str = "Türk Hava Yolları yeni sefer başlattı",
     summary: str = "THYAO kapasite artışı açıkladı.",
@@ -90,7 +128,10 @@ def create_article(
 
 
 def test_safe_text_cleans_whitespace() -> None:
-    assert safe_text("  Örnek   metin  ") == "Örnek metin"
+    assert safe_text(
+        "  Örnek   metin  "
+    ) == "Örnek metin"
+
     assert safe_text("") is None
     assert safe_text("   ") is None
     assert safe_text(123) is None
@@ -111,7 +152,14 @@ def test_local_name_removes_namespace() -> None:
         )
         == "entry"
     )
-    assert local_name("content:encoded") == "encoded"
+
+    assert (
+        local_name(
+            "content:encoded"
+        )
+        == "encoded"
+    )
+
     assert local_name("title") == "title"
 
 
@@ -214,7 +262,9 @@ def test_parse_feed_datetime_accepts_iso_date() -> None:
 def test_parse_feed_datetime_rejects_invalid_values(
     value: object,
 ) -> None:
-    assert parse_feed_datetime(value) is None
+    assert parse_feed_datetime(
+        value
+    ) is None
 
 
 def test_validate_feed_url_accepts_http_and_https() -> None:
@@ -245,8 +295,12 @@ def test_validate_feed_url_accepts_http_and_https() -> None:
 def test_validate_feed_url_rejects_invalid_url(
     url: str,
 ) -> None:
-    with pytest.raises(ValueError):
-        validate_feed_url(url)
+    with pytest.raises(
+        ValueError
+    ):
+        validate_feed_url(
+            url
+        )
 
 
 def test_download_rss_feed(
@@ -261,7 +315,9 @@ def test_download_rss_feed(
             ),
         }
 
-        def __enter__(self) -> FakeResponse:
+        def __enter__(
+            self,
+        ) -> FakeResponse:
             return self
 
         def __exit__(
@@ -276,15 +332,24 @@ def test_download_rss_feed(
             self,
             size: int,
         ) -> bytes:
-            captured["read_size"] = size
+            captured[
+                "read_size"
+            ] = size
+
             return RSS_DATA
 
     def fake_urlopen(
         request: object,
         timeout: int,
     ) -> FakeResponse:
-        captured["request"] = request
-        captured["timeout"] = timeout
+        captured[
+            "request"
+        ] = request
+
+        captured[
+            "timeout"
+        ] = timeout
+
         return FakeResponse()
 
     monkeypatch.setattr(
@@ -300,6 +365,7 @@ def test_download_rss_feed(
 
     assert result == RSS_DATA
     assert captured["timeout"] == 10
+
     assert (
         captured["read_size"]
         == MAX_FEED_SIZE_BYTES + 1
@@ -316,7 +382,9 @@ def test_download_rss_feed_rejects_large_response(
             ),
         }
 
-        def __enter__(self) -> FakeResponse:
+        def __enter__(
+            self,
+        ) -> FakeResponse:
             return self
 
         def __exit__(
@@ -336,7 +404,9 @@ def test_download_rss_feed_rejects_large_response(
     monkeypatch.setattr(
         module,
         "urlopen",
-        lambda request, timeout: FakeResponse(),
+        lambda request, timeout: (
+            FakeResponse()
+        ),
     )
 
     with pytest.raises(
@@ -352,9 +422,14 @@ def test_download_rss_feed_rejects_empty_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class FakeResponse:
-        headers: dict[str, str] = {}
+        headers: dict[
+            str,
+            str,
+        ] = {}
 
-        def __enter__(self) -> FakeResponse:
+        def __enter__(
+            self,
+        ) -> FakeResponse:
             return self
 
         def __exit__(
@@ -374,7 +449,9 @@ def test_download_rss_feed_rejects_empty_response(
     monkeypatch.setattr(
         module,
         "urlopen",
-        lambda request, timeout: FakeResponse(),
+        lambda request, timeout: (
+            FakeResponse()
+        ),
     )
 
     with pytest.raises(
@@ -397,31 +474,49 @@ def test_parse_rss_feed() -> None:
 
     first_article = articles[0]
 
-    assert first_article["id"] == "haber-1"
+    assert (
+        first_article["id"]
+        == "haber-1"
+    )
+
     assert (
         first_article["title"]
         == "THY yeni seferlerini duyurdu"
     )
+
     assert (
         first_article["summary"]
         == "Türk Hava Yolları yeni uçuş başlattı."
     )
+
     assert (
         first_article["publisher"]
         == "Örnek Ekonomi"
     )
+
     assert (
         first_article["publishedAt"]
         == "2026-07-31T10:30:00+00:00"
     )
+
     assert (
         first_article["link"]
         == "https://example.com/haber-1"
     )
-    assert first_article["relatedTickers"] == [
-        "THYAO.IS",
-    ]
-    assert first_article["source_type"] == "rss"
+
+    assert (
+        first_article[
+            "relatedTickers"
+        ]
+        == ["THYAO.IS"]
+    )
+
+    assert (
+        first_article[
+            "source_type"
+        ]
+        == "rss"
+    )
 
 
 def test_parse_atom_feed() -> None:
@@ -432,10 +527,12 @@ def test_parse_atom_feed() -> None:
     )
 
     assert len(articles) == 1
+
     assert (
         articles[0]["title"]
         == "ASELSAN yeni sözleşme imzaladı"
     )
+
     assert (
         articles[0]["link"]
         == "https://example.com/atom-1"
@@ -463,7 +560,7 @@ def test_parse_rss_feed_skips_missing_title() -> None:
             </item>
         </channel>
     </rss>
-    """
+    """.encode("utf-8")
 
     assert (
         parse_rss_feed(
@@ -480,7 +577,7 @@ def test_normalize_match_text() -> None:
         normalize_match_text(
             "<b>Türk Hava Yolları</b>"
         )
-        == "türk hava yolları"
+        == "turk hava yollari"
     )
 
 
@@ -510,8 +607,17 @@ def test_resolve_company_aliases() -> None:
     )
 
     assert aliases[0] == "THYAO"
-    assert "Türk Hava Yolları" in aliases
-    assert "Turkish Airlines" in aliases
+
+    assert (
+        "Türk Hava Yolları"
+        in aliases
+    )
+
+    assert (
+        "Turkish Airlines"
+        in aliases
+    )
+
     assert "THY" in aliases
 
     assert (
@@ -546,7 +652,9 @@ def test_normalize_article_url() -> None:
         "HTTPS://EXAMPLE.COM/haber/#bolum"
     )
 
-    assert result == "https://example.com/haber"
+    assert result == (
+        "https://example.com/haber"
+    )
 
 
 def test_article_deduplication_key_prefers_url() -> None:
@@ -556,7 +664,9 @@ def test_article_deduplication_key_prefers_url() -> None:
     )
 
     assert (
-        article_deduplication_key(article)
+        article_deduplication_key(
+            article
+        )
         == "url:https://example.com/haber"
     )
 
@@ -568,8 +678,10 @@ def test_article_deduplication_key_uses_title() -> None:
     }
 
     assert (
-        article_deduplication_key(article)
-        == "title:örnek haber başlığı"
+        article_deduplication_key(
+            article
+        )
+        == "title:ornek haber basligi"
     )
 
 
@@ -610,15 +722,18 @@ def test_article_sort_datetime() -> None:
         )
     )
 
-    assert article_sort_datetime(
-        article
-    ) == datetime(
-        2026,
-        7,
-        31,
-        10,
-        0,
-        tzinfo=timezone.utc,
+    assert (
+        article_sort_datetime(
+            article
+        )
+        == datetime(
+            2026,
+            7,
+            31,
+            10,
+            0,
+            tzinfo=timezone.utc,
+        )
     )
 
 
@@ -631,8 +746,14 @@ def test_fetch_single_rss_source(
         feed_url: str,
         timeout: int,
     ) -> bytes:
-        captured["feed_url"] = feed_url
-        captured["timeout"] = timeout
+        captured[
+            "feed_url"
+        ] = feed_url
+
+        captured[
+            "timeout"
+        ] = timeout
+
         return RSS_DATA
 
     monkeypatch.setattr(
@@ -643,19 +764,31 @@ def test_fetch_single_rss_source(
 
     result = fetch_single_rss_source(
         source_name="Ekonomi",
-        feed_url="https://example.com/rss.xml",
+        feed_url=(
+            "https://example.com/rss.xml"
+        ),
         symbol="THYAO",
         timeout=12,
     )
 
-    assert captured["feed_url"] == (
-        "https://example.com/rss.xml"
+    assert (
+        captured["feed_url"]
+        == "https://example.com/rss.xml"
     )
-    assert captured["timeout"] == 12
+
+    assert (
+        captured["timeout"]
+        == 12
+    )
+
     assert len(result) == 2
-    assert result[0]["relatedTickers"] == [
-        "THYAO.IS",
-    ]
+
+    assert (
+        result[0][
+            "relatedTickers"
+        ]
+        == ["THYAO.IS"]
+    )
 
 
 def test_fetch_rss_news_filters_and_sorts(
@@ -670,7 +803,9 @@ def test_fetch_rss_news_filters_and_sorts(
     )
 
     newer_relevant = create_article(
-        title="Türk Hava Yolları kapasite artırdı",
+        title=(
+            "Türk Hava Yolları kapasite artırdı"
+        ),
         link="https://example.com/yeni",
         published_at=(
             "2026-07-31T10:00:00+00:00"
@@ -678,9 +813,15 @@ def test_fetch_rss_news_filters_and_sorts(
     )
 
     irrelevant = create_article(
-        title="ASELSAN yeni sözleşme imzaladı",
-        summary="Savunma sanayisi haberi.",
-        link="https://example.com/ilgisiz",
+        title=(
+            "ASELSAN yeni sözleşme imzaladı"
+        ),
+        summary=(
+            "Savunma sanayisi haberi."
+        ),
+        link=(
+            "https://example.com/ilgisiz"
+        ),
     )
 
     def fake_fetch_single_rss_source(
@@ -688,8 +829,13 @@ def test_fetch_rss_news_filters_and_sorts(
         feed_url: str,
         symbol: str,
         timeout: int,
-    ) -> list[dict[str, object]]:
-        if source_name == "Kaynak 1":
+    ) -> list[
+        dict[str, object]
+    ]:
+        if (
+            source_name
+            == "Kaynak 1"
+        ):
             return [
                 older_relevant,
                 irrelevant,
@@ -710,8 +856,12 @@ def test_fetch_rss_news_filters_and_sorts(
         symbol="THYAO",
         count=10,
         feed_urls={
-            "Kaynak 1": "https://example.com/1.xml",
-            "Kaynak 2": "https://example.com/2.xml",
+            "Kaynak 1": (
+                "https://example.com/1.xml"
+            ),
+            "Kaynak 2": (
+                "https://example.com/2.xml"
+            ),
         },
     )
 
@@ -724,15 +874,22 @@ def test_fetch_rss_news_filters_and_sorts(
 def test_fetch_rss_news_continues_after_source_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    successful_article = create_article()
+    successful_article = (
+        create_article()
+    )
 
     def fake_fetch_single_rss_source(
         source_name: str,
         feed_url: str,
         symbol: str,
         timeout: int,
-    ) -> list[dict[str, object]]:
-        if source_name == "Hatalı Kaynak":
+    ) -> list[
+        dict[str, object]
+    ]:
+        if (
+            source_name
+            == "Hatalı Kaynak"
+        ):
             raise URLError(
                 "Bağlantı kurulamadı"
             )
@@ -769,8 +926,13 @@ def test_fetch_rss_news_respects_count(
 ) -> None:
     articles = [
         create_article(
-            title=f"THYAO haber {index}",
-            link=f"https://example.com/{index}",
+            title=(
+                f"THYAO haber {index}"
+            ),
+            link=(
+                "https://example.com/"
+                f"{index}"
+            ),
             published_at=(
                 f"2026-07-{31 - index:02d}"
                 "T10:00:00+00:00"
@@ -789,12 +951,17 @@ def test_fetch_rss_news_respects_count(
         symbol="THYAO",
         count=2,
         feed_urls={
-            "Kaynak": "https://example.com/rss.xml",
+            "Kaynak": (
+                "https://example.com/rss.xml"
+            ),
         },
     )
 
     assert len(result) == 2
-    assert result == articles[:2]
+
+    assert result == (
+        articles[:2]
+    )
 
 
 def test_fetch_rss_news_returns_empty_for_empty_sources() -> None:

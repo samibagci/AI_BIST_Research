@@ -15,7 +15,38 @@ from src.news_sources.google_news_source import (
     quote_search_term,
     strip_html,
 )
+@pytest.fixture(autouse=True)
+def mock_company_aliases(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_resolve_company_aliases(
+        symbol: str,
+        aliases=None,
+    ) -> tuple[str, ...]:
+        if symbol in {
+            "TUPRS",
+            "TUPRS.IS",
+        }:
+            result = [
+                "TUPRS",
+                "Tüpraş",
+                "Türkiye Petrol Rafinerileri",
+            ]
+        else:
+            result = [
+                symbol.removesuffix(".IS"),
+            ]
 
+        if aliases is not None:
+            result.extend(aliases)
+
+        return tuple(dict.fromkeys(result))
+
+    monkeypatch.setattr(
+        module,
+        "resolve_company_aliases",
+        fake_resolve_company_aliases,
+    )
 
 GOOGLE_NEWS_DATA = """<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
