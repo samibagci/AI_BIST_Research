@@ -618,3 +618,13 @@ def test_investment_relevant_company_news_keeps_uncertain_news() -> None:
             "ASELSAN",
         ),
     )
+def test_text_contains_phrase_matches_turkish_possessive_suffixes() -> None:
+    assert text_contains_phrase(
+        "aselsanin ilk 6 aylik cirosu artti",
+        "ciro",
+    )
+
+    assert text_contains_phrase(
+        "tupras hissesi yukseliste",
+        "hisse",
+    )

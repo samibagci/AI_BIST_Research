@@ -267,6 +267,8 @@ TURKISH_WORD_SUFFIXES = (
     "nda",
     "nde",
     "nin",
+    "si",
+    "su",
     "nun",
     "dir",
     "tir",
