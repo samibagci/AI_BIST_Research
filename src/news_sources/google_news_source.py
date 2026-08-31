@@ -32,6 +32,16 @@ GOOGLE_NEWS_BASE_URL = (
 )
 
 
+IRRELEVANT_CONTEXT_PHRASES = {
+    "tüpraş stadyumu",
+    "tupras stadyumu",
+    "tüpraş stadı",
+    "tupras stadi",
+    "tüpraş stadium",
+    "tupras stadium",
+}
+
+
 def strip_html(
     value: object,
 ) -> str | None:
@@ -102,10 +112,9 @@ def text_contains_alias(
     )
 
 
-def is_google_article_relevant(
+def article_combined_text(
     article: Mapping[str, object],
-    aliases: Sequence[str],
-) -> bool:
+) -> str:
     title_text = normalize_match_text(
         article.get("title")
     )
@@ -114,7 +123,7 @@ def is_google_article_relevant(
         article.get("summary")
     )
 
-    combined_text = " ".join(
+    return " ".join(
         value
         for value in [
             title_text,
@@ -123,7 +132,39 @@ def is_google_article_relevant(
         if value
     )
 
+
+def has_irrelevant_context(
+    article: Mapping[str, object],
+) -> bool:
+    combined_text = article_combined_text(
+        article
+    )
+
     if not combined_text:
+        return False
+
+    return any(
+        normalize_match_text(phrase)
+        in combined_text
+        for phrase
+        in IRRELEVANT_CONTEXT_PHRASES
+    )
+
+
+def is_google_article_relevant(
+    article: Mapping[str, object],
+    aliases: Sequence[str],
+) -> bool:
+    combined_text = article_combined_text(
+        article
+    )
+
+    if not combined_text:
+        return False
+
+    if has_irrelevant_context(
+        article
+    ):
         return False
 
     return any(
