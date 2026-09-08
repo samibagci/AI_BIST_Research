@@ -575,8 +575,8 @@ def test_analyze_news_articles_filters_old_news() -> None:
     assert result["positive_count"] == 1
     assert result["negative_count"] == 1
     assert result["neutral_count"] == 0
-    assert result["news_sentiment_score"] == 58.82
-    assert result["label"] == "HAFİF OLUMLU"
+    assert result["news_sentiment_score"] == 54.35
+    assert result["label"] == "NÖTR"
     assert "üretim durdu" in result["risk_keywords"]
 
     assert result["source_types"] == [

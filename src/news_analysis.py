@@ -7,6 +7,9 @@ import sys
 from datetime import datetime, timedelta, timezone
 from numbers import Real
 from pathlib import Path
+from src.news_relevance import (
+    calculate_investment_relevance_score,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -519,6 +522,22 @@ def calculate_recency_weight(
 
     return 0.30
 
+def calculate_investment_weight(
+    relevance_score: int,
+) -> float:
+    if relevance_score <= 0:
+        return 0.35
+
+    if relevance_score == 1:
+        return 0.50
+
+    if relevance_score <= 3:
+        return 0.75
+
+    if relevance_score <= 5:
+        return 1.00
+
+    return 1.20
 
 def news_score_label(
     score: float,
@@ -635,15 +654,23 @@ def analyze_news_articles(
         ):
             continue
 
-        title = str(article["title"])
-        summary = article.get("summary")
+        title = str(
+            article["title"]
+        )
+
+        summary = article.get(
+            "summary"
+        )
 
         sentiment_result = (
             calculate_article_sentiment(
                 title=title,
                 summary=(
                     summary
-                    if isinstance(summary, str)
+                    if isinstance(
+                        summary,
+                        str,
+                    )
                     else None
                 ),
             )
@@ -651,23 +678,69 @@ def analyze_news_articles(
 
         recency_weight = (
             calculate_recency_weight(
-                published_at=published_datetime,
-                reference_time=reference_time,
+                published_at=(
+                    published_datetime
+                ),
+                reference_time=(
+                    reference_time
+                ),
             )
+        )
+
+        relevance_article = {
+            "title": title,
+            "summary": (
+                summary
+                if isinstance(
+                    summary,
+                    str,
+                )
+                else None
+            ),
+        }
+
+        investment_relevance_score = (
+            calculate_investment_relevance_score(
+                relevance_article
+            )
+        )
+
+        investment_weight = (
+            calculate_investment_weight(
+                investment_relevance_score
+            )
+        )
+
+        combined_weight = (
+            recency_weight
+            * investment_weight
         )
 
         analyzed_articles.append(
             {
                 **article,
                 **sentiment_result,
-                "recency_weight": recency_weight,
+                "investment_relevance_score": (
+                    investment_relevance_score
+                ),
+                "recency_weight": (
+                    recency_weight
+                ),
+                "investment_weight": (
+                    investment_weight
+                ),
+                "combined_weight": (
+                    combined_weight
+                ),
             }
         )
 
     analyzed_articles.sort(
         key=lambda article: (
             parse_datetime(
-                article.get("published_at")
+                article.get(
+                    "published_at"
+                )
             )
             or datetime.min.replace(
                 tzinfo=timezone.utc
@@ -679,32 +752,61 @@ def analyze_news_articles(
     positive_count = sum(
         1
         for article in analyzed_articles
-        if article["sentiment_label"] == "OLUMLU"
+        if (
+            article[
+                "sentiment_label"
+            ]
+            == "OLUMLU"
+        )
     )
 
     negative_count = sum(
         1
         for article in analyzed_articles
-        if article["sentiment_label"] == "OLUMSUZ"
+        if (
+            article[
+                "sentiment_label"
+            ]
+            == "OLUMSUZ"
+        )
     )
 
     neutral_count = (
-        len(analyzed_articles)
+        len(
+            analyzed_articles
+        )
         - positive_count
         - negative_count
     )
 
     total_weight = sum(
-        float(article["recency_weight"])
-        for article in analyzed_articles
+        float(
+            article[
+                "combined_weight"
+            ]
+        )
+        for article
+        in analyzed_articles
     )
 
     if total_weight > 0:
-        weighted_sentiment = sum(
-            float(article["sentiment_value"])
-            * float(article["recency_weight"])
-            for article in analyzed_articles
-        ) / total_weight
+        weighted_sentiment = (
+            sum(
+                float(
+                    article[
+                        "sentiment_value"
+                    ]
+                )
+                * float(
+                    article[
+                        "combined_weight"
+                    ]
+                )
+                for article
+                in analyzed_articles
+            )
+            / total_weight
+        )
     else:
         weighted_sentiment = 0.0
 
@@ -724,9 +826,16 @@ def analyze_news_articles(
     risk_keywords = sorted(
         {
             keyword
-            for article in analyzed_articles
-            for keyword in article["risk_keywords"]
-            if isinstance(keyword, str)
+            for article
+            in analyzed_articles
+            for keyword
+            in article[
+                "risk_keywords"
+            ]
+            if isinstance(
+                keyword,
+                str,
+            )
         }
     )
 
@@ -739,11 +848,14 @@ def analyze_news_articles(
     source_types = sorted(
         {
             source_type
-            for article in analyzed_articles
+            for article
+            in analyzed_articles
             if (
                 source_type
                 := safe_text(
-                    article.get("source_type")
+                    article.get(
+                        "source_type"
+                    )
                 )
             )
             is not None
@@ -753,11 +865,14 @@ def analyze_news_articles(
     source_names = sorted(
         {
             source_name
-            for article in analyzed_articles
+            for article
+            in analyzed_articles
             if (
                 source_name
                 := safe_text(
-                    article.get("source_name")
+                    article.get(
+                        "source_name"
+                    )
                 )
             )
             is not None
@@ -775,8 +890,13 @@ def analyze_news_articles(
             "yüksek ağırlıkla değerlendirilmiştir."
         ),
         (
-            "Haberler Yahoo Finance ve Türkçe RSS "
-            "kaynaklarından toplanıp tekilleştirilmiştir."
+            "Yatırım açısından daha alakalı haberler "
+            "duygu puanında daha yüksek ağırlıkla "
+            "değerlendirilmiştir."
+        ),
+        (
+            "Haberler çoklu kaynaklardan toplanıp "
+            "tekilleştirilmiştir."
         ),
         (
             "Kaynaklardan biri çalışmazsa analiz diğer "
@@ -791,42 +911,70 @@ def analyze_news_articles(
     if not analyzed_articles:
         notes.insert(
             0,
-            "Belirlenen dönem içinde kullanılabilir haber bulunamadı.",
+            (
+                "Belirlenen dönem içinde "
+                "kullanılabilir haber bulunamadı."
+            ),
         )
 
     if data_confidence < 50:
         notes.insert(
             0,
-            "Haber sayısı veya haber metadatası sınırlı olduğu için veri güveni düşüktür.",
+            (
+                "Haber sayısı veya haber metadatası "
+                "sınırlı olduğu için veri güveni "
+                "düşüktür."
+            ),
         )
 
     return {
-        "generated_at": reference_time.isoformat(),
+        "generated_at": (
+            reference_time.isoformat()
+        ),
         "symbol": base_symbol,
         "yahoo_symbol": yahoo_symbol,
         "source": SOURCE_NAME,
-        "source_types": source_types,
-        "source_names": source_names,
-        "lookback_days": lookback_days,
-        "fetched_count": len(raw_articles),
+        "source_types": (
+            source_types
+        ),
+        "source_names": (
+            source_names
+        ),
+        "lookback_days": (
+            lookback_days
+        ),
+        "fetched_count": len(
+            raw_articles
+        ),
         "analyzed_count": len(
             analyzed_articles
         ),
-        "positive_count": positive_count,
-        "neutral_count": neutral_count,
-        "negative_count": negative_count,
+        "positive_count": (
+            positive_count
+        ),
+        "neutral_count": (
+            neutral_count
+        ),
+        "negative_count": (
+            negative_count
+        ),
         "news_sentiment_score": (
             news_sentiment_score
         ),
         "label": news_score_label(
             news_sentiment_score
         ),
-        "data_confidence": data_confidence,
-        "risk_keywords": risk_keywords,
-        "articles": analyzed_articles,
+        "data_confidence": (
+            data_confidence
+        ),
+        "risk_keywords": (
+            risk_keywords
+        ),
+        "articles": (
+            analyzed_articles
+        ),
         "notes": notes,
     }
-
 
 def run_news_analysis(
     symbol: str,
