@@ -10,6 +10,7 @@ from src.download_bist_prices import (
     normalize_bist_symbol,
 )
 from src.news_relevance import (
+    calculate_investment_relevance_score,
     is_investment_relevant_company_news,
 )
 from src.news_sources.rss_source import (
@@ -460,7 +461,14 @@ def fetch_google_news(
     )
 
     unique_articles.sort(
-        key=article_sort_datetime,
+        key=lambda article: (
+            calculate_investment_relevance_score(
+                article
+            ),
+            article_sort_datetime(
+                article
+            ),
+        ),
         reverse=True,
     )
 

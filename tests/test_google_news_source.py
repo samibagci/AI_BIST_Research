@@ -559,3 +559,67 @@ def test_fetch_google_news_rejects_invalid_timeout() -> None:
             symbol="TUPRS",
             timeout=0,
         )
+
+def test_fetch_google_news_prioritizes_investment_score_over_recency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    older_high_score_article = create_article(
+        article_id="high-score",
+        title="ASELSAN güçlü yatırım haberi",
+        published_at=(
+            "2026-07-20T10:00:00+00:00"
+        ),
+        link="https://example.com/high-score",
+    )
+
+    newer_zero_score_article = create_article(
+        article_id="zero-score",
+        title="ASELSAN genel açıklama",
+        published_at=(
+            "2026-07-31T10:00:00+00:00"
+        ),
+        link="https://example.com/zero-score",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "download_rss_feed",
+        lambda feed_url, timeout: b"<rss />",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "parse_google_news_feed",
+        lambda feed_data, symbol: [
+            newer_zero_score_article,
+            older_high_score_article,
+        ],
+    )
+
+    monkeypatch.setattr(
+        module,
+        "filter_relevant_articles",
+        lambda symbol, articles, aliases=None: list(
+            articles
+        ),
+    )
+
+    monkeypatch.setattr(
+        module,
+        "calculate_investment_relevance_score",
+        lambda article: (
+            4
+            if article.get("id") == "high-score"
+            else 0
+        ),
+    )
+
+    result = fetch_google_news(
+        symbol="ASELS",
+        count=2,
+    )
+
+    assert result == [
+        older_high_score_article,
+        newer_zero_score_article,
+    ]        
